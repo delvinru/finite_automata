@@ -1,4 +1,4 @@
-module github.com/delvinru/probabilistic_methods
+module github.com/delvinru/finite_automata
 
 go 1.22.1
 

@@ -54,6 +54,7 @@ class Graph:
         nodes_to_visit = list(self.graph.keys())
 
         for node in nodes_to_visit:
+            print(visited)
             if node not in visited:
                 component = []
                 dfs(node, component)
@@ -257,12 +258,16 @@ def main(n: int, phi: list[int], psi: list[int]) -> None:
     fsm = FSM(n, phi, psi)
 
     # # TASK 1
-    # print("TASK 1")
-    # weak_components = fsm.get_connected_components()
+    print("TASK 1")
+    weak_components = fsm.get_connected_components()
+    print("res", weak_components)
+    print(fsm.graph.graph)
 
     # # TASK 2
-    # print("TASK 2")
-    # strong_compoents = fsm.get_strong_connected_components()
+    print("TASK 2")
+    strong_compoents = fsm.get_strong_connected_components()
+    print(strong_compoents)
+
 
     # # TASK 3
     # print("TASK 3")

@@ -2,20 +2,14 @@ package fsm
 
 import (
 	"errors"
-	"fmt"
 	"math"
-	"strconv"
-	"strings"
 
-	"github.com/hmdsefi/gograph"
-	"github.com/hmdsefi/gograph/traverse"
 	"gonum.org/v1/gonum/stat/combin"
-	"gonum.org/v1/gonum/graph"
 )
 
 type Pair[T, U any] struct {
-	First  T
-	Second U
+	Phi T
+	Psi U
 }
 
 type FSM struct {
@@ -23,32 +17,21 @@ type FSM struct {
 	phi []uint8 // phi(x_1, ..., x_n, x)
 	psi []uint8 // psi(x_1, ..., x_n, x)
 
-	graph gograph.Graph[State]
+	graph Graph
 	table map[State]Pair[[]State, []uint8]
+
+	// characteristics of the fsm
+	EquivalenceClasses map[int][][]State
+	Delta              int
+	Mu                 int
 }
 
-func (f *FSM) ConnectedComponents() {
-	visited := make(map[*gograph.Vertex[State]]bool, len(f.graph.GetAllVertices()))
+func (f *FSM) ConnectedComponents() [][]State {
+	return f.graph.ConnectedComponents()
+}
 
-	connectedComponents := [][]State{}
-
-	for _, node := range f.graph.GetAllVertices() {
-		fmt.Println("visited", visited)
-		if !visited[node] {
-			iter, _ := traverse.NewDepthFirstIterator(f.graph, node.Label())
-			tmp := []State{}
-			for iter.Iterate(func(v *gograph.Vertex[State]) error {
-				fmt.Println(node.Label(), "->", value.Label())
-			})
-
-			connectedComponents = append(connectedComponents, tmp)
-		}
-	}
-
-	fmt.Println(connectedComponents)
-
-	// fmt.Println(connectivity.Kosaraju(f.graph))
-	// fmt.Println(connectivity.Tarjan(f.graph))
+func (f *FSM) StrongConnectedComponents() [][]State {
+	return f.graph.StrongConnectedComponents()
 }
 
 func getFunctionCoeffs(function string) ([]uint8, error) {
@@ -62,14 +45,6 @@ func getFunctionCoeffs(function string) ([]uint8, error) {
 		coeffs[idx] = n
 	}
 	return coeffs, nil
-}
-
-func joinArray(array []uint8) string {
-	str := make([]string, len(array))
-	for i, v := range array {
-		str[i] = strconv.Itoa(int(v))
-	}
-	return strings.Join(str, "")
 }
 
 func New(n int, phi string, psi string) (FSM, error) {
@@ -99,7 +74,7 @@ func New(n int, phi string, psi string) (FSM, error) {
 		n:     n,
 		phi:   phis,
 		psi:   psis,
-		graph: gograph.New[State](gograph.Directed()),
+		graph: *NewGraph(),
 		table: map[State]Pair[[]State, []uint8]{},
 	}
 
@@ -111,7 +86,7 @@ func New(n int, phi string, psi string) (FSM, error) {
 
 func initFsm(fsm *FSM) {
 	for state := range generateBinaryCombinations(fsm.n) {
-		graphNode := NewState(joinArray(state))
+		graphNode := NewState(state)
 
 		phis := []State{}
 		psis := []uint8{}
@@ -120,10 +95,10 @@ func initFsm(fsm *FSM) {
 			zpPhi := computeZhegalkinPolynomial(uint8(x), state, fsm.phi)
 			zpPsi := computeZhegalkinPolynomial(uint8(x), state, fsm.psi)
 
-			newState := NewState(joinArray(append(state[1:], zpPhi)))
+			newState := NewState(append(state[1:], zpPhi))
 
 			// init graph
-			fsm.graph.AddEdge(gograph.NewVertex(graphNode), gograph.NewVertex(newState))
+			fsm.graph.AddEdge(graphNode, newState)
 
 			// init table
 			phis = append(phis, newState)
@@ -134,6 +109,7 @@ func initFsm(fsm *FSM) {
 	}
 }
 
+// chat gpt, i'm ok with this
 func generateBinaryCombinations(n int) <-chan []uint8 {
 	result := make(chan []uint8)
 

@@ -54,7 +54,6 @@ class Graph:
         nodes_to_visit = list(self.graph.keys())
 
         for node in nodes_to_visit:
-            print(visited)
             if node not in visited:
                 component = []
                 dfs(node, component)
@@ -126,7 +125,7 @@ class FSM:
     def get_strong_connected_components(self) -> list[list[State]]:
         return self.graph.find_strong_connected_components()
 
-    def _get_first_classes(self) -> set[State]:
+    def _get_first_classes(self) -> list[list[State]]:
         dict_classes = {
             State([0, 0]): [],
             State([0, 1]): [],
@@ -138,7 +137,7 @@ class FSM:
             first_class_key = State([values[1][0], values[1][1]])
             dict_classes[first_class_key].append(key)
 
-        return [x for x in dict_classes.values() if x]
+        return  [x for x in dict_classes.values() if x]
 
     def _is_in_one_equal_class(self, value_1: State, value_2: State, old_classes: list[set[State]]) -> bool:
         perehod_value_1_from_0 = self.table[value_1][0][0]
@@ -165,6 +164,7 @@ class FSM:
         for i in range(1, len(current_class)):
             if self._is_in_one_equal_class(current_class[0], current_class[i], old_classes):
                 new_class.append(current_class[i])
+        print(new_class)
         return new_class
 
     def _split_class(self, clazz: set[State], old_classes: list[set[State]]) -> list[set[State]]:
@@ -185,8 +185,8 @@ class FSM:
                 k_classes.append(split_class)
         return k_classes
 
-    def get_equivalence_classes(self) -> dict[int, list[set[State]]]:
-        equivalence_classes: dict[int, list[set[State]]] = defaultdict(list)
+    def get_equivalence_classes(self) -> dict[int, list[list[State]]]:
+        equivalence_classes: dict[int, list[list[State]]] = defaultdict(list)
         # find 1-classes
         equivalence_classes[1] = self._get_first_classes()
         # find k-classes
@@ -258,22 +258,21 @@ def main(n: int, phi: list[int], psi: list[int]) -> None:
     fsm = FSM(n, phi, psi)
 
     # # TASK 1
-    print("TASK 1")
-    weak_components = fsm.get_connected_components()
-    print("res", weak_components)
-    print(fsm.graph.graph)
+    # print("TASK 1")
+    # weak_components = fsm.get_connected_components()
+    # print("res", weak_components)
 
     # # TASK 2
-    print("TASK 2")
-    strong_compoents = fsm.get_strong_connected_components()
-    print(strong_compoents)
+    # print("TASK 2")
+    # strong_compoents = fsm.get_strong_connected_components()
+    # print("res", strong_compoents)
 
 
     # # TASK 3
     # print("TASK 3")
-    # equivalence_classes = fsm.get_equivalence_classes()
-    # print(f"Степень различимости автомата, delta(A): {len(equivalence_classes.keys())}")
-    # print(f"mu(A): {len(equivalence_classes[len(equivalence_classes)])}")
+    equivalence_classes = fsm.get_equivalence_classes()
+    print(f"Степень различимости автомата, delta(A): {len(equivalence_classes.keys())}")
+    print(f"mu(A): {len(equivalence_classes[len(equivalence_classes)])}")
 
     # TASK 4
     # print("TASK 4")

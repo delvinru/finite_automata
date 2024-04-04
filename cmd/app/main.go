@@ -27,5 +27,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	fsm.ConnectedComponents()
+	connectedComponents := fsm.ConnectedComponents()
+	fmt.Println("ConnectedComponents:", connectedComponents)
+	strongConnectedComponents := fsm.StrongConnectedComponents()
+	fmt.Println("StrongConnectedComponents:", strongConnectedComponents)
+
+	fsm.GetEquivalenceClasses()
+	fmt.Println("Equivalence Classess:", fsm.EquivalenceClasses)
+	fmt.Println("delta(A):", fsm.Delta)
+	fmt.Println("mu(A):", fsm.Mu)
 }

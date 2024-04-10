@@ -254,6 +254,48 @@ class FSM:
         initial_combination = [0] * n
         yield from generate_combinations_helper(initial_combination, 0)
 
+    def _is_equal_edges_in_q_s(self, q: list[dict[State, list[dict[State, list[int]]]]]) -> bool:
+        unique_edges = set()
+        edges_count = 0
+        for edges in q.values():
+            for edge in edges:
+                for pair in edge.values():
+                    tuple_pair = tuple(pair[0] + pair[1])
+                    unique_edges.add(tuple_pair)
+                    edges_count += 1
+        return len(unique_edges) != edges_count
+    
+    def compute_memory_function(self):
+        # self.table: dict[State, tuple[list[State], list[int]]] = dict()
+        q_1: dict[State, list[dict[State, list[list[int]]]]] = dict()
+        # dict[State, ... State - состояние, в которое входят ребра
+        # dict[State, list[int]]]
+        # State - состояние, из которого выходит ребро
+        # list[int] - пара значений. Первое - входное значение, второе - выходное
+        # generate q_1
+        for key_state in self.table.keys():
+            for value_state, edges in self.table.items():
+                for i in range(len(edges)):
+                    if edges[0][i] == key_state:
+                        q_1.setdefault(key_state, list())
+                        q_1[key_state].append({value_state: [[i], [edges[1][i]]]})
+        q_s = [q_1]
+        while not self._is_equal_edges_in_q_s(q_s[-1]):
+            # start compute q_2, q_3, ...
+            # Еще по идее выход из цикла возможен при каком-то s (большом)
+            next_q: dict[State, list[dict[State, list[int]]]] = dict()
+            for key_state, states_edges in q_s[-1].items():
+                for i in range(len(states_edges)):
+                    next_q.setdefault(key_state, list())
+                    for state, edge in states_edges[i].items():
+                        for another_states_another_edges in q_1[state]:
+                            for another_state, another_edge in another_states_another_edges.items():
+                                next_q[key_state].append({another_state: [another_edge[0] + edge[0],
+                                                                          another_edge[1] + edge[1]]})
+            q_s.append(next_q)
+        for i, q in enumerate(q_s):
+            print(f"q_{i + 1} = {q}\n")
+
 def main(n: int, phi: list[int], psi: list[int]) -> None:
     fsm = FSM(n, phi, psi)
 
@@ -270,9 +312,10 @@ def main(n: int, phi: list[int], psi: list[int]) -> None:
 
     # # TASK 3
     # print("TASK 3")
-    equivalence_classes = fsm.get_equivalence_classes()
-    print(f"Степень различимости автомата, delta(A): {len(equivalence_classes.keys())}")
-    print(f"mu(A): {len(equivalence_classes[len(equivalence_classes)])}")
+    # equivalence_classes = fsm.get_equivalence_classes()
+    # print(f"Степень различимости автомата, delta(A): {len(equivalence_classes.keys())}")
+    # print(f"mu(A): {len(equivalence_classes[len(equivalence_classes)])}")
+    fsm.compute_memory_function()
 
     # TASK 4
     # print("TASK 4")

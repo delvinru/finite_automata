@@ -21,6 +21,9 @@ class State:
             return self.key == __key.key
         else:
             return False
+        
+    def __lt__(self, __key: object) -> bool:
+        return self.key > __key
 
     def __str__(self) -> str:
         return str(self.key)
@@ -159,12 +162,13 @@ class FSM:
         
         return check_0 and check_1
 
-    def _step_split_class(self, current_class: set[State], old_classes: list[set[State]]) -> list[set[State]]:
+    # изменил возвращаемое значение с list[set[State]] на list[State]
+    # ПО идее это правильнее
+    def _step_split_class(self, current_class: set[State], old_classes: list[set[State]]) -> list[State]:
         new_class = [current_class[0]]
         for i in range(1, len(current_class)):
             if self._is_in_one_equal_class(current_class[0], current_class[i], old_classes):
                 new_class.append(current_class[i])
-        print(new_class)
         return new_class
 
     def _split_class(self, clazz: set[State], old_classes: list[set[State]]) -> list[set[State]]:
@@ -185,8 +189,10 @@ class FSM:
                 k_classes.append(split_class)
         return k_classes
 
-    def get_equivalence_classes(self) -> dict[int, list[list[State]]]:
-        equivalence_classes: dict[int, list[list[State]]] = defaultdict(list)
+    # Изменил dict[int, list[list[State]]] на dict[int, list[set[State]]]
+    # Вроде так правильнее
+    def get_equivalence_classes(self) -> dict[int, list[set[State]]]:
+        equivalence_classes: dict[int, list[set[State]]] = defaultdict(list)
         # find 1-classes
         equivalence_classes[1] = self._get_first_classes()
         # find k-classes
@@ -224,12 +230,33 @@ class FSM:
             # print(f"{phis=} {psis=}")
             self.table[graph_node] = (phis, psis)
 
+    def combos(self, iterable, r):
+        # combinations('ABCD', 2) --> AB AC AD BC BD CD
+        # combinations(range(4), 3) --> 012 013 023 123
+        pool = tuple(iterable)
+        n = len(pool)
+        if r > n:
+            return
+        indices = list(range(r))
+        yield tuple(pool[i] for i in indices)
+        while True:
+            for i in reversed(range(r)):
+                if indices[i] != i + n - r:
+                    break
+            else:
+                return
+            indices[i] += 1
+            for j in range(i+1, r):
+                indices[j] = indices[j-1] + 1
+            yield tuple(pool[i] for i in indices)
+
     def _compute_zhegalkin_polynomial(self, input_x: int, current_state: list[int], coeffs: list[int]) -> None:
         zp = [1]  # initial state, why?
         extended_current_state = current_state + [input_x]
 
         for i in range(1, len(extended_current_state) + 1):
             combs = combinations(extended_current_state, i)
+            # combs = self.combos(extended_current_state, i)
             for el in combs:
                 product = 1
                 for num in el:
@@ -402,6 +429,7 @@ class FSM:
 
 def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
     fsm = FSM(n, phi, psi)
+    # pprint(fsm.table)
 
     # # TASK 1
     # print("TASK 1")
@@ -417,15 +445,18 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
     # # TASK 3
     # print("TASK 3")
     # equivalence_classes = fsm.get_equivalence_classes()
+    # print(equivalence_classes)
     # print(f"Степень различимости автомата, delta(A): {len(equivalence_classes.keys())}")
     # print(f"mu(A): {len(equivalence_classes[len(equivalence_classes)])}")
-    # fsm.compute_memory_function()
-    min_polynomial = fsm.compute_min_polynomial(init_state)
-    print(f"Min polynomial: {min_polynomial}")
-    print(f"Linear complexity: {len(min_polynomial)}")
 
     # TASK 4
     # print("TASK 4")
+    # fsm.compute_memory_function()
+
+    # TASK 5
+    min_polynomial = fsm.compute_min_polynomial(init_state)
+    print(f"Min polynomial: {min_polynomial}")
+    print(f"Linear complexity: {len(min_polynomial)}")
     
 
 # helper functions for graph printing
@@ -467,3 +498,4 @@ if __name__ == "__main__":
 
 # example to start program
 # python3 poc/main.py 7 0100000000000000010000010000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 0110000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 0100101
+# 7 0110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 0100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

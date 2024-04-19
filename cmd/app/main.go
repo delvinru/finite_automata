@@ -13,6 +13,7 @@ func main() {
 	n := flag.Int("n", 0, "length of zhegalkin polynom")
 	phi := flag.String("phi", "", "function for fsm")
 	psi := flag.String("psi", "", "function for fsm")
+	initState := flag.String("init_state", "", "initial state for berlekamp massey")
 	flag.Parse()
 
 	if len(os.Args) == 1 {
@@ -31,9 +32,16 @@ func main() {
 	fmt.Println("ConnectedComponents:", connectedComponents)
 	strongConnectedComponents := fsm.StrongConnectedComponents()
 	fmt.Println("StrongConnectedComponents:", strongConnectedComponents)
+	fmt.Println()
 
 	fsm.GetEquivalenceClasses()
 	fmt.Println("Equivalence Classess:", fsm.EquivalenceClasses)
 	fmt.Println("delta(A):", fsm.Delta)
 	fmt.Println("mu(A):", fsm.Mu)
+
+	fmt.Println()
+
+	minimalPolynomial, _ := fsm.ComputeMinimalPolynomial(*initState)
+	fmt.Println("Minimal Polynomial:", minimalPolynomial)
+	fmt.Println("Linear Complexity:", len(minimalPolynomial))
 }

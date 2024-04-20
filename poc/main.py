@@ -451,11 +451,19 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
 
     # TASK 4
     # print("TASK 4")
-    fsm.compute_memory_function()
+    # fsm.compute_memory_function()
 
     # # TASK 5
     # min_polynomial = fsm.compute_min_polynomial(init_state)
     # print(f"Min polynomial: {min_polynomial}")
+
+    # if min_polynomial[0] == 1:
+    #     print("1 + ", end='')
+    # for i in range(1, len(min_polynomial)):
+    #     if min_polynomial[i] == 1:
+    #         print(f"x^{i} + ", end='')
+    # print()
+
     # print(f"Linear complexity: {len(min_polynomial)}")
     
 

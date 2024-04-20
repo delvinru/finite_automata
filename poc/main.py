@@ -282,7 +282,7 @@ class FSM:
         yield from generate_combinations_helper(initial_combination, 0)
 
     # Нужно для определения памяти автомата
-    def _is_equal_edges_in_q_s(self, q: list[dict[State, list[dict[State, list[int]]]]]) -> bool:
+    def _is_equal_edges_in_q(self, q: dict[State, list[dict[State, list[int]]]]) -> bool:
         unique_edges = set()
         edges_count = 0
         for edges in q.values():
@@ -308,7 +308,7 @@ class FSM:
                         q_1.setdefault(key_state, list())
                         q_1[key_state].append({value_state: [[i], [edges[1][i]]]})
         q_s = [q_1]
-        while not self._is_equal_edges_in_q_s(q_s[-1]):
+        while not self._is_equal_edges_in_q(q_s[-1]):
             # start compute q_2, q_3, ...
             # Еще по идее выход из цикла возможен при каком-то s (большом)
             next_q: dict[State, list[dict[State, list[int]]]] = dict()
@@ -322,7 +322,8 @@ class FSM:
                                                                           another_edge[1] + edge[1]]})
             q_s.append(next_q)
         for i, q in enumerate(q_s):
-            print(f"q_{i + 1} = {q}\n")
+            print(f"q_{i + 1}:\n")
+            pprint(q)
 
     # Тут вычисляем выходную последовательность автомата
     def _compute_u(self, init_state: list[int]) -> list[int]:
@@ -389,9 +390,9 @@ class FSM:
                 # Для сложения значений двух многочленов разной длины
                 def compute_sum_of_two_polynomials(first_polynomial: list[int], second_polynomial: list[int]) -> list[int]:
                     length = max(len(first_polynomial), len(second_polynomial))
-                    if len(first_polynomial) != max:
+                    if len(first_polynomial) != length:
                         first_polynomial = first_polynomial + [0 for i in range(length - len(first_polynomial))]
-                    if len(second_polynomial) != max:
+                    if len(second_polynomial) != length:
                         second_polynomial = second_polynomial + [0 for i in range(length - len(second_polynomial))]
                     new_list = []
                     for i in range(length):
@@ -402,8 +403,7 @@ class FSM:
                                                                  [i * r for i in segments[t]]))
                 current_polynomials.append(compute_sum_of_two_polynomials(current_polynomials[-1],
                                                                     [i * r for i in polynomials[t]]))
-                current_zeros_count.append(count_of_leading_zeros(current_segments[-1]))
-            
+                current_zeros_count.append(count_of_leading_zeros(current_segments[-1]))            
             # Случай 1
             if count_of_leading_zeros(current_segments[-1]) == len(current_segments[-1]):
                 zeros_count.append(current_zeros_count[-1])
@@ -451,12 +451,12 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
 
     # TASK 4
     # print("TASK 4")
-    # fsm.compute_memory_function()
+    fsm.compute_memory_function()
 
-    # TASK 5
-    min_polynomial = fsm.compute_min_polynomial(init_state)
-    print(f"Min polynomial: {min_polynomial}")
-    print(f"Linear complexity: {len(min_polynomial)}")
+    # # TASK 5
+    # min_polynomial = fsm.compute_min_polynomial(init_state)
+    # print(f"Min polynomial: {min_polynomial}")
+    # print(f"Linear complexity: {len(min_polynomial)}")
     
 
 # helper functions for graph printing

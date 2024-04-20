@@ -113,7 +113,7 @@ class FSM {
                 {State({1, 1}), {}}
             };
 
-            for (auto entry : table) {
+            for (auto entry : this->table) {
                 std::tuple<std::vector <State>, std::vector<int>> values = entry.second;
                 std::vector<int> keys = std::get<1>(values);
                 State first_class_key(std::vector<int>{keys[0], keys[1]});
@@ -136,7 +136,7 @@ class FSM {
 
             std::vector<State> perehod_values;
             for (auto value{values.begin()}; value != values.end(); value++) {
-                std::tuple<std::vector<State>, std::vector<int>> table_value = table[*value];
+                std::tuple<std::vector<State>, std::vector<int>> table_value = this->table[*value];
                 std::vector<State> table_value_states = std::get<0>(table_value);
                 for (int i = 0; i < 2; i++) {
                     perehod_values.push_back(table_value_states[i]);
@@ -208,8 +208,8 @@ class FSM {
             std::vector<int> u;
             State current_state(init_state);
             for (int i = 0; i < std::pow(2, n); i++) {
-                u.push_back(std::get<1>(table[current_state])[0]);
-                current_state = std::get<0>(table[current_state])[0];
+                u.push_back(std::get<1>(this->table[current_state])[0]);
+                current_state = std::get<0>(this->table[current_state])[0];
             }
             return u;
         }
@@ -238,12 +238,14 @@ class FSM {
             int length = std::max(first_polynomial.size(), second_polynomial.size());
 
             if (first_polynomial.size() != length) {
-                for (int i = 0; i < length - first_polynomial.size(); i++)
+                int diff = length - first_polynomial.size();
+                for (int i = 0; i < diff; i++)
                     first_polynomial.push_back(0);
             }
 
             if (second_polynomial.size() != length) {
-                for (int i = 0; i < length - second_polynomial.size(); i++)
+                int diff = length - second_polynomial.size();
+                for (int i = 0; i < diff; i++)
                     second_polynomial.push_back(0);
             }
 
@@ -281,10 +283,7 @@ class FSM {
                 current_polynomials.push_back(temp);
 
                 std::vector<int> current_zeros_count;
-                if (zeros_count.back() != 0)
-                    current_zeros_count = {zeros_count.back() - 1};
-                else
-                    current_zeros_count = {0};
+                current_zeros_count.push_back({zeros_count.back() != 0 ? zeros_count.back() - 1 : 0});
 
                 while (count_of_leading_zeros(current_segments.back()) != current_segments.back().size() &&
                         std::find(zeros_count.begin(), zeros_count.end(), current_zeros_count.back()) != zeros_count.end()) {
@@ -305,9 +304,11 @@ class FSM {
                     for (auto i : polynomials[t]) {
                         temp.push_back(i * r);
                     }
+
                     current_polynomials.push_back(compute_sum_of_two_polynomials(current_polynomials.back(), temp));
 
-                    current_zeros_count.push_back(count_of_leading_zeros(current_segments.back()));                }
+                    current_zeros_count.push_back(count_of_leading_zeros(current_segments.back()));                
+                }
 
                 if (count_of_leading_zeros(current_segments.back()) == current_segments.back().size()) {
                     zeros_count.push_back(current_zeros_count.back());
@@ -329,16 +330,46 @@ class FSM {
             return polynomials.back();
         }
 
+        bool is_equal_edges_in_q(std::map<State, std::vector<std::map<State, std::vector<std::vector<int>>>>>& q) {
+            std::set<std::tuple<std::vector<int>, std::vector<int>>> unique_edges;
+            int edges_count = 0;
+
+            // get q.values()
+            std::vector<std::vector<std::map<State, std::vector<std::vector<int>>>>> q_values;
+            for (auto pair : q) {
+                q_values.push_back(pair.second);
+            }
+
+            // start first for
+            for (auto edges : q_values) {
+                // start second for
+                for (auto edge : edges) {
+                    // get edge.values()
+                    std::vector<std::vector<std::vector<int>>> edge_values;
+                    for (auto pair : edge) {
+                        edge_values.push_back(pair.second);
+                    }
+                    // start third for
+                    for (auto entry : edge_values) {
+                        std::tuple<std::vector<int>, std::vector<int>> tuple_pair = std::make_tuple(entry[0], entry[1]);
+                        unique_edges.insert(tuple_pair);
+                        edges_count += 1;
+                    }
+                }
+            }
+            return unique_edges.size() != edges_count;
+        }
+
     public:
         int n;
         std::vector<int> phi;
         std::vector<int> psi;
         Graph graph;
         std::map<State, std::tuple<std::vector<State>, std::vector<int>>> table;
-        FSM (int get_n, std::vector<int> get_phi, std::vector<int> get_psi) {
-            n = get_n;
-            phi = get_phi;
-            psi = get_psi;
+        FSM (int n, std::vector<int> phi, std::vector<int> psi) {
+            this->n = n;
+            this->phi = phi;
+            this->psi = psi;
 
             std::vector<std::vector<int>> binary_combinations = generate_binary_combinations(n);
             for (auto state{binary_combinations.begin()}; state != binary_combinations.end(); state++) {
@@ -358,22 +389,22 @@ class FSM {
                     new_state.push_back(zp_phi);
 
                     State argument_state(new_state);
-                    graph.add_vertex(graph_node, argument_state);
+                    this->graph.add_vertex(graph_node, argument_state);
 
                     // init table
                     phis.push_back(State(new_state));
                     psis.push_back(zp_psi);
                 }
-                table[graph_node] = std::tuple<std::vector<State>, std::vector<int>>{phis, psis};
+                this->table[graph_node] = std::tuple<std::vector<State>, std::vector<int>>{phis, psis};
             }
         }
 
         std::vector<std::vector<State>> get_connected_components() {
-            return graph.find_connected_components();
+            return this->graph.find_connected_components();
         }
 
         std::vector<std::vector<State>> get_strong_connected_components() {
-            return graph.find_strong_connected_components();
+            return this->graph.find_strong_connected_components();
         }
 
         std::map<int, std::vector<std::set<State>>> get_equivalence_classes() {
@@ -399,5 +430,90 @@ class FSM {
             std::vector<int> u = compute_u(init_state);
             std::vector<int> min_polynomial = berlekamp_massey(u);
             return min_polynomial;
+        }
+
+        void compute_memory_function() {
+            std::map<State, std::vector<std::map<State, std::vector<std::vector<int>>>>> q_1;
+
+            std::vector<State> key_states;
+            for(auto pair : this->table) {
+                key_states.push_back(pair.first);
+            }
+            for (auto key_state : key_states) {
+                for (auto entry : this->table) {
+                    State value_state = entry.first;
+                    std::tuple<std::vector<State>, std::vector<int>> edges = entry.second;
+                    // len(edges) == 2?
+                    for (int i = 0; i < 2; i++) {
+                        if ((std::get<0>(edges))[i] == key_state) {
+                            if (q_1.find(key_state) == q_1.end()) {
+                                q_1[key_state] = {};
+                            }
+                            std::map<State, std::vector<std::vector<int>>> temp;
+                            temp[value_state] = {{i}, {std::get<1>(edges)[i]}};
+                            q_1[key_state].push_back(temp);
+                        }
+                    }
+                }
+            }
+
+            std::vector<std::map<State, std::vector<std::map<State, std::vector<std::vector<int>>>>>> q_s;
+            q_s.push_back(q_1);
+            while (!is_equal_edges_in_q(q_s.back())) {
+                std::map<State, std::vector<std::map<State, std::vector<std::vector<int>>>>> next_q;
+                for (auto entry : q_s.back()) {
+                    State key_state = entry.first;
+                    std::vector<std::map<State, std::vector<std::vector<int>>>> states_edges = entry.second;
+                    for (int i = 0; i < states_edges.size(); i++) {
+                        if (next_q.find(key_state) == next_q.end()) {
+                            next_q[key_state] = {};
+                        }
+                        for (auto pair : states_edges[i]) {
+                            State state = pair.first;
+                            std::vector<std::vector<int>> edge = pair.second;
+                            for (auto another_states_another_edges : q_1[state]) {
+                                for (auto another_entry : another_states_another_edges) {
+                                    State another_state = another_entry.first;
+                                    std::vector<std::vector<int>> another_edge = another_entry.second;
+                                    std::map<State, std::vector<std::vector<int>>> temp;
+                                    temp[another_state] = {another_edge[0].insert(another_edge[0].end(), edge[0].begin(), edge[0].end()),
+                                                            another_edge[1].insert(another_edge[1].end(), edge[1].begin(), edge[1].end())};
+                                    next_q[key_state].push_back(temp);
+                                }
+                            }
+                        }
+                    }
+                }
+                q_s.push_back(next_q);
+            }
+
+        // std::vector<std::vector<int>>
+            int i = 1;
+            for (auto q : q_s) {
+                std::cout << "q_" << i << std::endl;
+                for (auto first_entry : q) {
+                    std::cout << first_entry.first << ": ";
+                    for (auto second_entry : first_entry.second) {
+                        std::cout << "[";
+                        for (auto third_entry : second_entry) {
+                            std::cout << "{";
+                            std::cout << third_entry.first << ": ";
+                            std::cout << "[";
+                            for (auto fourth_entry : third_entry.second) {
+                                std::cout << "<";
+                                for (auto el : fourth_entry) {
+                                    std::cout << el;
+                                }
+                                std::cout << "> ";
+                            }
+                            std::cout << "] ";
+                            std::cout << "} ";
+                        }
+                        std::cout << "] ";
+                    }
+                    std::cout << std::endl;
+                }
+                i++;
+            }
         }
 };

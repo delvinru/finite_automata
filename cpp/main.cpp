@@ -92,15 +92,19 @@ int main(int argc, char* argv[]) {
     // std::cout << "mu(A): " << equivalence_classes[equivalence_classes.size()].size() << std::endl;
     // ================================================================================
 
+    // TASK 4
+    // ================================================================================
+    fsm.compute_memory_function();
+    // ================================================================================
     // TASK 5
     // ================================================================================
-    std::vector<int> min_polynomial = fsm.compute_min_polynomial(init_state);
-    std::cout << "Минимальный многочлен: ";
-    for (auto coef : min_polynomial) {
-        std::cout << coef;
-    }
-    std::cout << std::endl;
-    std::cout << "Линейная сложность: " << min_polynomial.size() << std::endl;
+    // std::vector<int> min_polynomial = fsm.compute_min_polynomial(init_state);
+    // std::cout << "Минимальный многочлен: ";
+    // for (auto coef : min_polynomial) {
+    //     std::cout << coef;
+    // }
+    // std::cout << std::endl;
+    // std::cout << "Линейная сложность: " << min_polynomial.size() << std::endl;
     // ================================================================================
     return 0;
 }

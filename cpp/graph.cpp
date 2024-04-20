@@ -9,7 +9,7 @@ class Graph {
         void dfs(const State& node, std::set<State>& visited, std::vector<State>& component) {
             visited.insert(node);
             component.push_back(node);
-            for (const auto& neighbor : graph[node]) {
+            for (const auto& neighbor : this->graph[node]) {
                 if (visited.find(neighbor) == visited.end()) {
                     dfs(neighbor, visited, component);
                 }
@@ -19,7 +19,7 @@ class Graph {
 
         Graph transpose() {
             Graph transposed_graph;
-            for (auto& pair : graph) {
+            for (auto& pair : this->graph) {
                 State node = pair.first;
                 for (State neighbor : pair.second)
                     transposed_graph.add_vertex(neighbor, node);
@@ -29,7 +29,7 @@ class Graph {
 
         void first_dfs(State& node, std::set<State>& visited, std::vector<State>& order) {
             visited.insert(node);
-            for (State neighbor : graph.at(node)) {
+            for (State neighbor : this->graph.at(node)) {
                 if (visited.find(neighbor) == visited.end()) {
                     first_dfs(neighbor, visited, order);
                 }
@@ -50,9 +50,9 @@ class Graph {
         std::map<State, std::set<State>> graph;
 
         void add_vertex(State& from_node, State& to_node) {
-            if (!graph.count(from_node))
-                graph[from_node] = std::set<State>();
-            graph[from_node].insert(to_node);
+            if (!this->graph.count(from_node))
+                this->graph[from_node] = std::set<State>();
+            this->graph[from_node].insert(to_node);
         }
 
         friend std::ostream& operator<<(std::ostream& os, const Graph& graph) {
@@ -71,7 +71,7 @@ class Graph {
             std::set<State> visited;
             std::vector<std::vector<State>> connected_components;
 
-            for (const auto& pair : graph) {
+            for (const auto& pair : this->graph) {
                 const State& node = pair.first;
                 if (visited.find(node) == visited.end()) {
                     std::vector<State> component;
@@ -88,7 +88,7 @@ class Graph {
             std::vector<State> order;
             std::vector<std::vector<State>> scc;
 
-            for (auto& pair : graph) {
+            for (auto& pair : this->graph) {
                 State node = pair.first;
                 if (visited.find(node) == visited.end()) {
                     first_dfs(node, visited, order);

@@ -3,6 +3,7 @@ from typing import List, Set
 from pprint import pprint
 import argparse
 from collections import defaultdict
+from copy import deepcopy
 
 class State:
     def __init__(self, key: list[int]) -> None:
@@ -120,6 +121,13 @@ class FSM:
         self.graph = Graph()
         self.table: dict[State, tuple[list[State], list[int]]] = dict()
 
+        # классы эквивалентноси теперь храним в объеке
+        self.equivalence_classes: dict[int, list[set[State]]] = dict()
+        # степень различимости
+        self.delta: int = 0
+        # приведенный вес автомата
+        self.mu: int = 0
+
         self._init()
 
     def get_connected_components(self) -> list[list[State]]:
@@ -191,7 +199,7 @@ class FSM:
 
     # Изменил dict[int, list[list[State]]] на dict[int, list[set[State]]]
     # Вроде так правильнее
-    def get_equivalence_classes(self) -> dict[int, list[set[State]]]:
+    def get_equivalence_classes(self) -> None:
         equivalence_classes: dict[int, list[set[State]]] = defaultdict(list)
         # find 1-classes
         equivalence_classes[1] = self._get_first_classes()
@@ -206,7 +214,21 @@ class FSM:
 
             k += 1
             equivalence_classes[k] = new_class
-        return equivalence_classes
+
+        self.equivalence_classes = equivalence_classes
+        return None
+
+    def compute_delta(self):
+        # Проверяем, что уже вычислили классы эквивалентности
+        if len(self.equivalence_classes.keys()) == 0:
+            self.get_equivalence_classes
+        self.delta = len(self.equivalence_classes.keys())
+
+    def compute_mu(self):
+        # Проверяем, что уже вычислили классы эквивалентности
+        if len(self.equivalence_classes.keys()) == 0:
+            self.get_equivalence_classes
+        self.mu = len(self.equivalence_classes[len(self.equivalence_classes)])
 
     def _init(self) -> None:
         for state in self._generate_binary_combinations(self.n):
@@ -292,8 +314,17 @@ class FSM:
                     unique_edges.add(tuple_pair)
                     edges_count += 1
         return len(unique_edges) != edges_count
-    
+
+    # Добавить проверку на минимальность автомата и построение нового в случае чего
     def compute_memory_function(self):
+        # Проверяем, вычисляли мы до этого классы эквивалентности или нет
+        if len(self.equivalence_classes.keys()) == 0:
+            self.get_equivalence_classes()
+            self.compute_mu()
+            self.compute_delta()
+
+        fsm: FSM = deepcopy(self)
+
         # self.table: dict[State, tuple[list[State], list[int]]] = dict()
         q_1: dict[State, list[dict[State, list[list[int]]]]] = dict()
         # dict[State, ... State - состояние, в которое входят ребра
@@ -301,14 +332,23 @@ class FSM:
         # State - состояние, из которого выходит ребро
         # list[int] - пара значений. Первое - входное значение, второе - выходное
         # generate q_1
-        for key_state in self.table.keys():
-            for value_state, edges in self.table.items():
+
+        # Проверяем, является ли автомат минимальным
+        # Позже расскоментить, как разберемся с минимизацией
+        if fsm.mu != len(fsm.table.keys()):
+            ...
+        for key_state in fsm.table.keys():
+            for value_state, edges in fsm.table.items():
                 for i in range(len(edges)):
                     if edges[0][i] == key_state:
                         q_1.setdefault(key_state, list())
                         q_1[key_state].append({value_state: [[i], [edges[1][i]]]})
         q_s = [q_1]
-        while not self._is_equal_edges_in_q(q_s[-1]):
+
+        # Число, при достижении которого мы говорим, что память автомата бесконечна
+        max_steps = (fsm.mu * (fsm.mu - 1)) / 2
+        # Проверяем, что еще есть дублирующиеся элементы и мы не достигли счетчика
+        while fsm._is_equal_edges_in_q(q_s[-1]) and len(q_s) <= max_steps:
             # start compute q_2, q_3, ...
             # Еще по идее выход из цикла возможен при каком-то s (большом)
             next_q: dict[State, list[dict[State, list[int]]]] = dict()
@@ -319,11 +359,67 @@ class FSM:
                         for another_states_another_edges in q_1[state]:
                             for another_state, another_edge in another_states_another_edges.items():
                                 next_q[key_state].append({another_state: [another_edge[0] + edge[0],
-                                                                          another_edge[1] + edge[1]]})
+                                                                        another_edge[1] + edge[1]]})
             q_s.append(next_q)
-        for i, q in enumerate(q_s):
-            print(f"q_{i + 1}:\n")
-            pprint(q)
+
+        if len(q_s) > max_steps:
+            print("Память автомата бесконечна")
+        else:
+            for i, q in enumerate(q_s):
+                print(f"q_{i + 1}:\n")
+                pprint(q)
+            memory = len(q_s)
+            print(f"Память автомата m(A)={memory}")
+
+            # memory_value_vector = fsm._get_memory_value_vector(q_s[-1], memory)
+            # print(memory_value_vector)
+            # fsm._convert_memory_vector_to_int(memory_value_vector)
+            # print(memory_value_vector)
+            # Может нужно, но не отрабатывает
+            # memory_function_coefs = fsm._get_memory_function_coefs(memory_value_vector)
+            # print(memory_function_coefs)
+
+    def _get_memory_value_vector(self, q_last: dict[State, list[dict[State, list[list[int]]]]], memory: int):
+        memory_value_vector: list[int] = []
+        large_table_dict: dict[tuple[tuple[int]], list[int]] = dict()
+
+        large_table_dict_sub_keys: list[list[int]] = []
+        for comb in self._generate_binary_combinations(memory):
+            state = list(comb)
+            large_table_dict_sub_keys.append(state)
+
+        for comb_i in large_table_dict_sub_keys:
+            for comb_j in large_table_dict_sub_keys:
+                key = tuple([tuple(comb_i), tuple(comb_j)])
+                large_table_dict[key] = [None, None]
+
+        for main_state, elements in q_last.items():
+            for element in elements:
+                for vectors in element.values():
+                    current_vector = tuple([tuple(vectors[0]), tuple(vectors[1])])
+                    large_table_dict[current_vector][0] = self.table[main_state][1][0]
+                    large_table_dict[current_vector][1] = self.table[main_state][1][1]
+
+        for elements in large_table_dict.values():
+            memory_value_vector.append(elements[0])
+            memory_value_vector.append(elements[1])
+
+        return memory_value_vector
+    
+    def _convert_memory_vector_to_int(self, memory_vector: list[int]) -> None:
+        for i in range(len(memory_vector)):
+            if memory_vector[i] == None:
+                memory_vector[i] = 0
+
+    # another zhegalin polynomial implementation
+    def _get_memory_function_coefs(self, vector: list[int]) -> list[int]:
+        vector_len = len(vector)
+        pascal_triangle: list[list[int]] = [[0 for j in range(vector_len)] for i in range(vector_len)]
+        for i in range(1, vector_len + 1):
+            pascal_triangle[i - 1][0] = vector[vector_len - i]
+            for j in range(1, i):
+                pascal_triangle[i - 1][j] = pascal_triangle[i - 2][j - 1] ^ pascal_triangle[i - 1][j - 1]
+        return pascal_triangle[vector_len - 1]
 
     # Тут вычисляем выходную последовательность автомата
     def _compute_u(self, init_state: list[int]) -> list[int]:
@@ -444,14 +540,16 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
 
     # # TASK 3
     # print("TASK 3")
-    # equivalence_classes = fsm.get_equivalence_classes()
-    # print(equivalence_classes)
-    # print(f"Степень различимости автомата, delta(A): {len(equivalence_classes.keys())}")
-    # print(f"mu(A): {len(equivalence_classes[len(equivalence_classes)])}")
+    fsm.get_equivalence_classes()
+    fsm.compute_delta()
+    fsm.compute_mu()
+    # print(fsm.equivalence_classes)
+    # print(f"Степень различимости автомата, delta(A): {fsm.delta}")
+    # print(f"mu(A): {fsm.mu}")
 
     # TASK 4
-    # print("TASK 4")
-    # fsm.compute_memory_function()
+    print("TASK 4")
+    fsm.compute_memory_function()
 
     # # TASK 5
     # min_polynomial = fsm.compute_min_polynomial(init_state)

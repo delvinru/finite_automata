@@ -334,14 +334,14 @@ class FSM:
         # generate q_1
 
         # Проверяем, является ли автомат минимальным
-        # Позже расскоментить, как разберемся с минимизацией
         if fsm.mu != len(fsm.table.keys()):
-            ...
+            fsm._minimization()
+
         for key_state in fsm.table.keys():
+            q_1.setdefault(key_state, list())
             for value_state, edges in fsm.table.items():
                 for i in range(len(edges)):
                     if edges[0][i] == key_state:
-                        q_1.setdefault(key_state, list())
                         q_1[key_state].append({value_state: [[i], [edges[1][i]]]})
         q_s = [q_1]
 
@@ -356,18 +356,21 @@ class FSM:
                 for i in range(len(states_edges)):
                     next_q.setdefault(key_state, list())
                     for state, edge in states_edges[i].items():
-                        for another_states_another_edges in q_1[state]:
-                            for another_state, another_edge in another_states_another_edges.items():
-                                next_q[key_state].append({another_state: [another_edge[0] + edge[0],
-                                                                        another_edge[1] + edge[1]]})
-            q_s.append(next_q)
+                        if q_1[state] != []:
+                            for another_states_another_edges in q_1[state]:
+                                for another_state, another_edge in another_states_another_edges.items():
+                                    next_q[key_state].append({another_state: [another_edge[0] + edge[0],
+                                                                            another_edge[1] + edge[1]]})
+            # q_s.append(next_q)
+            q_s = [next_q]
 
         if len(q_s) > max_steps:
             print("Память автомата бесконечна")
         else:
             for i, q in enumerate(q_s):
                 print(f"q_{i + 1}:\n")
-                pprint(q)
+                print(q)
+                # pprint(q)
             memory = len(q_s)
             print(f"Память автомата m(A)={memory}")
 
@@ -378,6 +381,26 @@ class FSM:
             # Может нужно, но не отрабатывает
             # memory_function_coefs = fsm._get_memory_function_coefs(memory_value_vector)
             # print(memory_function_coefs)
+
+    def _minimization(self) -> None:
+        # Проверяем, вычисляли мы до этого классы эквивалентности или нет
+        if len(self.equivalence_classes.keys()) == 0:
+            self.get_equivalence_classes()
+            self.compute_delta()
+
+        for set_states in self.equivalence_classes[self.delta]:
+            len_set = len(set_states)
+            if len_set > 1:
+                equivalent_state = set_states[0]
+                for i in range(1, len_set):
+                    for table_tuple in self.table.values():
+                        for state in table_tuple[0]:
+                            if state == set_states[i]:
+                                state = equivalent_state
+                    del self.table[set_states[i]]
+        self.get_equivalence_classes()
+        self.compute_delta()
+        self.compute_mu()
 
     def _get_memory_value_vector(self, q_last: dict[State, list[dict[State, list[list[int]]]]], memory: int):
         memory_value_vector: list[int] = []

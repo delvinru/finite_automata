@@ -306,14 +306,14 @@ class FSM:
     # Нужно для определения памяти автомата
     def _is_equal_edges_in_q(self, q: dict[State, list[dict[State, list[int]]]]) -> bool:
         unique_edges = set()
-        edges_count = 0
         for edges in q.values():
             for edge in edges:
                 for pair in edge.values():
                     tuple_pair = tuple(pair[0] + pair[1])
+                    if tuple_pair in unique_edges:
+                        return True
                     unique_edges.add(tuple_pair)
-                    edges_count += 1
-        return len(unique_edges) != edges_count
+        return False
 
     # Добавить проверку на минимальность автомата и построение нового в случае чего
     def compute_memory_function(self):
@@ -343,6 +343,9 @@ class FSM:
                 for i in range(len(edges)):
                     if edges[0][i] == key_state:
                         q_1[key_state].append({value_state: [[i], [edges[1][i]]]})
+        # Теперь чистим повторяющиеся в классах элементы
+        # Здесь нужно сделать так, чтобы из {01: [[1, 1], [1, 1]]}, {11: [[1, 1], [1, 1]]}
+        # получалось только {01: [[1, 1], [1, 1]]}}
         q_s = [q_1]
 
         # Число, при достижении которого мы говорим, что память автомата бесконечна
@@ -350,19 +353,20 @@ class FSM:
         # Проверяем, что еще есть дублирующиеся элементы и мы не достигли счетчика
         while fsm._is_equal_edges_in_q(q_s[-1]) and len(q_s) <= max_steps:
             # start compute q_2, q_3, ...
-            # Еще по идее выход из цикла возможен при каком-то s (большом)
-            next_q: dict[State, list[dict[State, list[int]]]] = dict()
+            next_q: dict[State, list[dict[State, list[list[int]]]]] = dict()
+
             for key_state, states_edges in q_s[-1].items():
+                next_q.setdefault(key_state, list())
                 for i in range(len(states_edges)):
-                    next_q.setdefault(key_state, list())
                     for state, edge in states_edges[i].items():
-                        if q_1[state] != []:
-                            for another_states_another_edges in q_1[state]:
-                                for another_state, another_edge in another_states_another_edges.items():
-                                    next_q[key_state].append({another_state: [another_edge[0] + edge[0],
-                                                                            another_edge[1] + edge[1]]})
-            # q_s.append(next_q)
-            q_s = [next_q]
+                        for another_states_another_edges in q_1[state]:
+                            for another_state, another_edge in another_states_another_edges.items():
+                                next_q[key_state].append({another_state: [another_edge[0] + edge[0],
+                                                                        another_edge[1] + edge[1]]})
+            # Теперь чистим повторяющиеся в классах элементы
+            # Здесь нужно сделать так, чтобы из {01: [[1, 1], [1, 1]]}, {11: [[1, 1], [1, 1]]}
+            # получалось только {01: [[1, 1], [1, 1]]}}
+            q_s.append(next_q)
 
         if len(q_s) > max_steps:
             print("Память автомата бесконечна")
@@ -372,7 +376,7 @@ class FSM:
                 print(q)
                 # pprint(q)
             memory = len(q_s)
-            print(f"Память автомата m(A)={memory}")
+            print(f"Память автомата конечна: m(A)={memory}")
 
             # memory_value_vector = fsm._get_memory_value_vector(q_s[-1], memory)
             # print(memory_value_vector)

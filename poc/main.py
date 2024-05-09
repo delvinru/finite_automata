@@ -4,6 +4,11 @@ from pprint import pprint
 import argparse
 from collections import defaultdict
 from copy import deepcopy
+import linecache
+import os
+# import tracemalloc
+import sys
+import gc
 
 class State:
     def __init__(self, key: list[int]) -> None:
@@ -315,6 +320,31 @@ class FSM:
                     unique_edges.add(tuple_pair)
         return False
 
+    def display_top(self, snapshot, key_type='lineno', limit=3):
+        snapshot = snapshot.filter_traces((
+            tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
+            tracemalloc.Filter(False, "<unknown>"),
+        ))
+        top_stats = snapshot.statistics(key_type)
+
+        print("Top %s lines" % limit)
+        for index, stat in enumerate(top_stats[:limit], 1):
+            frame = stat.traceback[0]
+            # replace "/path/to/module/file.py" with "module/file.py"
+            filename = os.sep.join(frame.filename.split(os.sep)[-2:])
+            print("#%s: %s:%s: %.1f KiB"
+                % (index, filename, frame.lineno, stat.size / 1024))
+            line = linecache.getline(frame.filename, frame.lineno).strip()
+            if line:
+                print('    %s' % line)
+
+        other = top_stats[limit:]
+        if other:
+            size = sum(stat.size for stat in other)
+            print("%s other: %.1f KiB" % (len(other), size / 1024))
+        total = sum(stat.size for stat in top_stats)
+        print("Total allocated size: %.1f KiB" % (total / 1024))
+
     # Добавить проверку на минимальность автомата и построение нового в случае чего
     def compute_memory_function(self):
         # Проверяем, вычисляли мы до этого классы эквивалентности или нет
@@ -326,7 +356,7 @@ class FSM:
         fsm: FSM = deepcopy(self)
 
         # self.table: dict[State, tuple[list[State], list[int]]] = dict()
-        q_1: dict[State, list[dict[State, list[list[int]]]]] = dict()
+        q_1: dict[State, list[dict[State, list[list[int]]]]] = defaultdict(list)
         # dict[State, ... State - состояние, в которое входят ребра
         # dict[State, list[int]]]
         # State - состояние, из которого выходит ребро
@@ -338,7 +368,6 @@ class FSM:
             fsm._minimization()
 
         for key_state in fsm.table.keys():
-            q_1.setdefault(key_state, list())
             edges_list: set[tuple[int]] = set()
             for value_state, edges in fsm.table.items():
                 for i in range(len(edges)):
@@ -351,36 +380,54 @@ class FSM:
         # Число, при достижении которого мы говорим, что память автомата бесконечна
         max_steps = (fsm.mu * (fsm.mu - 1)) / 2
         # Проверяем, что еще есть дублирующиеся элементы и мы не достигли счетчика
+
         while fsm._is_equal_edges_in_q(q_s[-1]) and len(q_s) <= max_steps:
             # start compute q_2, q_3, ...
-            next_q: dict[State, list[dict[State, list[list[int]]]]] = dict()
+            next_q: dict[State, list[dict[State, list[list[int]]]]] = defaultdict(list)
+            print(len(q_s))
 
-            for key_state, states_edges in q_s[-1].items():
-                next_q.setdefault(key_state, list())
+            for state, edges in q_s[-1].items():
                 edges_list: set[tuple[int]] = set()
-                for i in range(len(states_edges)):
-                    for state, edge in states_edges[i].items():
-                        for another_states_another_edges in q_1[state]:
-                            for another_state, another_edge in another_states_another_edges.items():
-                                tmp_set = tuple(another_edge[0] + edge[0] + another_edge[1] + edge[1])
-                                if tmp_set not in edges_list:
-                                    next_q[key_state].append({another_state: [another_edge[0] + edge[0],
-                                                                            another_edge[1] + edge[1]]})
-                                    edges_list.add(tmp_set)                
+                
+                for edge in edges:
+                    from_state, values = list(edge.items())[0]
+
+                    for edges_from_state in q_1[from_state]:
+                        for another_state, another_edge in edges_from_state.items():
+                            tmp_set = tuple(another_edge[0] + values[0] + another_edge[1] + values[1])
+                            if tmp_set not in edges_list:
+                                next_q[state].append({another_state: [another_edge[0] + values[0], another_edge[1] + values[1]]})
+                                edges_list.add(tmp_set)                
+
+            # sanches code (shit code)
+            # for key_state, states_edges in q_s[-1].items():
+            #     edges_list: set[tuple[int]] = set()
+
+            #     for i in range(len(states_edges)):
+            #         for state, edge in states_edges[i].items():
+            #             for another_states_another_edges in q_1[state]:
+            #                 for another_state, another_edge in another_states_another_edges.items():
+            #                     tmp_set = tuple(another_edge[0] + edge[0] + another_edge[1] + edge[1])
+            #                     if tmp_set not in edges_list:
+            #                         next_q[key_state].append({another_state: [another_edge[0] + edge[0], another_edge[1] + edge[1]]})
+            #                         edges_list.add(tmp_set)                
+
             q_s.append(next_q)
 
         if len(q_s) > max_steps:
             print("Память автомата бесконечна")
         else:
             for i, q in enumerate(q_s):
-                print(f"q_{i + 1}:\n")
-                print(q)
+                print(f"q_{i + 1}:")
+                # print(q)
                 # pprint(q)
             memory = len(q_s)
             print(f"Память автомата конечна: m(A)={memory}")
 
-            # memory_value_vector = fsm._get_memory_value_vector(q_s[-1], memory)
-            # print(memory_value_vector)
+            gc.collect()
+
+            memory_value_vector = fsm._get_memory_value_vector(q_s[-1], memory)
+            print(memory_value_vector)
             # fsm._convert_memory_vector_to_int(memory_value_vector)
             # print(memory_value_vector)
             # Может нужно, но не отрабатывает
@@ -399,13 +446,18 @@ class FSM:
                 equivalent_state = set_states[0]
                 for i in range(1, len_set):
                     for table_tuple in self.table.values():
-                        for state in table_tuple[0]:
+                        for i, state in enumerate(table_tuple[0]):
                             if state == set_states[i]:
-                                state = equivalent_state
+                                table_tuple[0][i] = equivalent_state
                     del self.table[set_states[i]]
+
         self.get_equivalence_classes()
         self.compute_delta()
         self.compute_mu()
+
+        # print(self.mu)
+        # print(self.delta)
+        # print(self.equivalence_classes[self.delta])
 
     def _get_memory_value_vector(self, q_last: dict[State, list[dict[State, list[list[int]]]]], memory: int):
         memory_value_vector: list[int] = []

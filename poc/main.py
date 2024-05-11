@@ -339,13 +339,16 @@ class FSM:
             fsm._minimization()
 
         for key_state in fsm.table.keys():
-            edges_list: set[tuple[int]] = set()
+
+            edges_list: list[list[int]] = list()
             for value_state, edges in fsm.table.items():
                 for i in range(len(edges)):
-                    tmp_set = tuple([i] + [edges[1][i]])
-                    if edges[0][i] == key_state and tmp_set not in edges_list:
+                    tmp_list = [[i], [edges[1][i]]]
+                    if edges[0][i] == key_state and tmp_list not in edges_list:
                         q_1[key_state].append({value_state: [[i], [edges[1][i]]]})
-                        edges_list.add(tmp_set)
+                        edges_list.append(tmp_list)
+
+        print(f"{q_1=}") 
         q_s = [q_1]
 
         # Число, при достижении которого мы говорим, что память автомата бесконечна
@@ -389,15 +392,15 @@ class FSM:
         else:
             for i, q in enumerate(q_s):
                 print(f"q_{i + 1}:")
-                # print(q)
+                print(q)
                 # pprint(q)
             memory = len(q_s)
             print(f"Память автомата конечна: m(A)={memory}")
 
             gc.collect()
 
-            memory_value_vector = fsm._get_memory_value_vector(q_s[-1], memory)
-            print(memory_value_vector)
+            # memory_value_vector = fsm._get_memory_value_vector(q_s[-1], memory)
+            # print(memory_value_vector)
             # fsm._convert_memory_vector_to_int(memory_value_vector)
             # print(memory_value_vector)
             # Может нужно, но не отрабатывает

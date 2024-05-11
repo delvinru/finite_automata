@@ -332,32 +332,54 @@ class FSM {
 
         bool is_equal_edges_in_q(std::map<State, std::vector<std::map<State, std::vector<std::vector<int>>>>>& q) {
             std::set<std::tuple<std::vector<int>, std::vector<int>>> unique_edges;
-            int edges_count = 0;
-
-            // get q.values()
-            std::vector<std::vector<std::map<State, std::vector<std::vector<int>>>>> q_values;
-            for (auto pair : q) {
-                q_values.push_back(pair.second);
-            }
 
             // start first for
-            for (auto edges : q_values) {
+            for (auto item : q) {
+                std::vector<std::map<State, std::vector<std::vector<int>>>> edges = item.second;
                 // start second for
                 for (auto edge : edges) {
-                    // get edge.values()
-                    std::vector<std::vector<std::vector<int>>> edge_values;
-                    for (auto pair : edge) {
-                        edge_values.push_back(pair.second);
-                    }
                     // start third for
-                    for (auto entry : edge_values) {
-                        std::tuple<std::vector<int>, std::vector<int>> tuple_pair = std::make_tuple(entry[0], entry[1]);
+                    for (auto entry : edge) {
+                        auto pair = entry.second;
+                        std::tuple<std::vector<int>, std::vector<int>> tuple_pair = std::make_tuple(pair[0], pair[1]);
+                        if (unique_edges.find(tuple_pair) != unique_edges.end())
+                            return true;
                         unique_edges.insert(tuple_pair);
-                        edges_count += 1;
                     }
                 }
             }
-            return unique_edges.size() != edges_count;
+            return false;
+        }
+
+        void minimization() {
+            if (this->equivalence_classes.size() == 0) {
+                this->get_equivalence_classes();
+                this->compute_delta();
+                this->compute_mu();
+            }
+
+            for (auto set_states: this->equivalence_classes[this->delta]) {
+                int len_set = set_states.size();
+                if (len_set > 1) {
+                    State equivalent_state = *set_states.begin();
+                    for (auto set_states_i = std::next(set_states.begin()); set_states_i != set_states.end(); ++set_states_i) {
+                        
+                        for (auto item: this->table) {
+                            std::tuple<std::vector<State>, std::vector<int>> table_tuple = item.second;
+                            for (int j = 0; j < std::get<0>(table_tuple).size(); ++j) {
+                                if (std::get<0>(table_tuple)[j] == *set_states_i) {
+                                    std::get<0>(table_tuple)[j] = equivalent_state;
+                                }
+                            }
+                        }
+                        this->table.erase(*set_states_i);
+                    }
+                }
+            }
+
+            this->get_equivalence_classes();
+            this->compute_delta();
+            this->compute_mu();
         }
 
     public:
@@ -366,6 +388,12 @@ class FSM {
         std::vector<int> psi;
         Graph graph;
         std::map<State, std::tuple<std::vector<State>, std::vector<int>>> table;
+
+        std::map<int, std::vector<std::set<State>>> equivalence_classes;
+
+        int delta = 0;
+        int mu = 0;
+
         FSM (int n, std::vector<int> phi, std::vector<int> psi) {
             this->n = n;
             this->phi = phi;
@@ -407,7 +435,7 @@ class FSM {
             return this->graph.find_strong_connected_components();
         }
 
-        std::map<int, std::vector<std::set<State>>> get_equivalence_classes() {
+        void get_equivalence_classes() {
             std::map<int, std::vector<std::set<State>>> equivalence_classes;
 
             // find 1-classes
@@ -423,7 +451,7 @@ class FSM {
                 k += 1;
                 equivalence_classes[k] = new_class;
             }
-            return equivalence_classes;
+            this->equivalence_classes = equivalence_classes;
         }
 
         std::vector<int> compute_min_polynomial(std::vector<int> init_state) {
@@ -432,73 +460,144 @@ class FSM {
             return min_polynomial;
         }
 
+        void compute_delta() {
+            if (this->equivalence_classes.size() == 0)
+                this->get_equivalence_classes();
+            this->delta = this->equivalence_classes.size();
+        }
+
+        void compute_mu() {
+            if (this->equivalence_classes.size() == 0)
+                this->get_equivalence_classes();
+            this->mu = (this->equivalence_classes[this->equivalence_classes.size()]).size();
+        }
+
         void compute_memory_function() {
+            if (this->equivalence_classes.size() == 0) {
+                this->get_equivalence_classes();
+                this->compute_delta();
+                this->compute_mu();
+            }
+
             std::map<State, std::vector<std::map<State, std::vector<std::vector<int>>>>> q_1;
 
-            std::vector<State> key_states;
-            for(auto pair : this->table) {
-                key_states.push_back(pair.first);
+            if (this->mu != this->table.size()) {
+                this->minimization();
             }
-            for (auto key_state : key_states) {
+
+            for (auto pair : this->table) {
+                State key_state = pair.first;
+
+                std::set<std::tuple<int, int>> edges_list;
                 for (auto entry : this->table) {
                     State value_state = entry.first;
                     std::tuple<std::vector<State>, std::vector<int>> edges = entry.second;
                     // len(edges) == 2?
                     for (int i = 0; i < 2; i++) {
-                        if ((std::get<0>(edges))[i] == key_state) {
+                        std::tuple<int, int> tmp_set = std::make_tuple(i, std::get<1>(edges)[i]);
+                        if ((std::get<0>(edges))[i] == key_state && (std::find(edges_list.begin(), edges_list.end(), tmp_set) == edges_list.end())) {
                             if (q_1.find(key_state) == q_1.end()) {
                                 q_1[key_state] = {};
                             }
                             std::map<State, std::vector<std::vector<int>>> temp;
                             temp[value_state] = {{i}, {std::get<1>(edges)[i]}};
                             q_1[key_state].push_back(temp);
+                            edges_list.insert(tmp_set);
                         }
                     }
                 }
             }
 
+            int max_steps = (this->mu * (this->mu - 1)) / 2;
+
             std::vector<std::map<State, std::vector<std::map<State, std::vector<std::vector<int>>>>>> q_s;
             q_s.push_back(q_1);
-            while (!is_equal_edges_in_q(q_s.back())) {
+
+            std::cout << q_s.size() << std::endl;
+            while (this->is_equal_edges_in_q(q_s.back()) && q_s.size() <= max_steps) {
                 std::map<State, std::vector<std::map<State, std::vector<std::vector<int>>>>> next_q;
-                for (auto entry : q_s.back()) {
-                    State key_state = entry.first;
-                    std::vector<std::map<State, std::vector<std::vector<int>>>> states_edges = entry.second;
-                    for (int i = 0; i < states_edges.size(); i++) {
-                        if (next_q.find(key_state) == next_q.end()) {
-                            next_q[key_state] = {};
-                        }
-                        for (auto pair : states_edges[i]) {
-                            State state = pair.first;
-                            std::vector<std::vector<int>> edge = pair.second;
-                            for (auto another_states_another_edges : q_1[state]) {
-                                for (auto another_entry : another_states_another_edges) {
-                                    State another_state = another_entry.first;
-                                    std::vector<std::vector<int>> another_edge = another_entry.second;
-                                    std::map<State, std::vector<std::vector<int>>> temp;
-                                    temp[another_state] = {another_edge[0].insert(another_edge[0].end(), edge[0].begin(), edge[0].end()),
-                                                            another_edge[1].insert(another_edge[1].end(), edge[1].begin(), edge[1].end())};
-                                    next_q[key_state].push_back(temp);
+
+                #pragma omp parallel for
+                for (auto entry: q_s.back()) {
+                    State state = entry.first;
+                    std::vector<std::map<State, std::vector<std::vector<int>>>> edges = entry.second;
+                    std::set<std::tuple<std::vector<int>>> edges_list;
+
+                    #pragma omp parallel for
+                    for (auto edge: edges) {
+                        auto from_state = edge.begin()->first;
+                        auto values = edge.begin()->second;
+
+                        #pragma omp parallel for
+                        for (auto edges_from_state: q_1[from_state]) {
+                            #pragma omp parallel for
+                            for (auto another: edges_from_state) {
+                                State another_state = another.first;
+                                std::vector<std::vector<int>> another_edge = another.second;
+                                std::vector<int> tmp_vector;
+                                #pragma omp parallel for
+                                for (auto el: another_edge[0])
+                                    tmp_vector.push_back(el);
+                                #pragma omp parallel for
+                                for (auto el: values[0])
+                                    tmp_vector.push_back(el);
+                                #pragma omp parallel for
+                                for (auto el: another_edge[1])
+                                    tmp_vector.push_back(el);
+                                #pragma omp parallel for
+                                for (auto el: values[1])
+                                    tmp_vector.push_back(el);
+
+                                std::tuple<std::vector<int>> tmp_set(tmp_vector);
+                                if (edges_list.find(tmp_set) == edges_list.end()) {
+                                    std::map<State, std::vector<std::vector<int>>> tmp;
+                                    std::vector<int> temp1;
+                                    std::vector<int> temp2;
+                                    std::vector<std::vector<int>> temp;
+                                    #pragma omp parallel for
+                                    for (auto el: another_edge[0])
+                                        temp1.push_back(el);
+                                    #pragma omp parallel for
+                                    for (auto el: values[0])
+                                        temp1.push_back(el);
+                                    temp.push_back(temp1);
+                                    #pragma omp parallel for
+                                    for (auto el: another_edge[1])
+                                        temp2.push_back(el);
+                                    #pragma omp parallel for
+                                    for (auto el: values[1])
+                                        temp2.push_back(el);
+                                    temp.push_back(temp2);                
+                                    tmp[another_state] = temp;
+                                    next_q[state].push_back(tmp);
+                                    edges_list.insert(tmp_set);
                                 }
                             }
                         }
                     }
                 }
+
                 q_s.push_back(next_q);
+                std::cout << q_s.size() << std::endl;
             }
 
         // std::vector<std::vector<int>>
             int i = 1;
+            #pragma omp parallel for
             for (auto q : q_s) {
                 std::cout << "q_" << i << std::endl;
+                #pragma omp parallel for
                 for (auto first_entry : q) {
                     std::cout << first_entry.first << ": ";
+                    #pragma omp parallel for
                     for (auto second_entry : first_entry.second) {
                         std::cout << "[";
+                        #pragma omp parallel for
                         for (auto third_entry : second_entry) {
                             std::cout << "{";
                             std::cout << third_entry.first << ": ";
                             std::cout << "[";
+                            #pragma omp parallel for
                             for (auto fourth_entry : third_entry.second) {
                                 std::cout << "<";
                                 for (auto el : fourth_entry) {
@@ -515,5 +614,6 @@ class FSM {
                 }
                 i++;
             }
+            std::cout << "m(A) = " << q_s.size() << std::endl;
         }
 };

@@ -48,7 +48,6 @@ class Graph {
         }
     public:
         std::map<State, std::set<State>> graph;
-
         void add_vertex(State& from_node, State& to_node) {
             if (!this->graph.count(from_node))
                 this->graph[from_node] = std::set<State>();

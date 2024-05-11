@@ -22,7 +22,6 @@ int main(int argc, char* argv[]) {
     std::vector<int> phi = convert_str_to_vector(argv[2]);
     std::vector<int> psi = convert_str_to_vector(argv[3]);
     std::vector<int> init_state = convert_str_to_vector(argv[4]);
-
     FSM fsm(n, phi, psi);
 
     // for (const auto& entry : fsm.table) {
@@ -50,6 +49,7 @@ int main(int argc, char* argv[]) {
 
     // TASK 1
     // ================================================================================
+    // FSM fsm(n, phi, psi);
     // std::vector<std::vector<State>> weak_components = fsm.get_connected_components();
 
     // for (const auto& vec : weak_components) {
@@ -63,6 +63,7 @@ int main(int argc, char* argv[]) {
 
     // TASK 2
     // ================================================================================
+    // FSM fsm(n, phi, psi);
     // std::vector<std::vector<State>> strong_compoents = fsm.get_strong_connected_components();
     // for (const auto& vec : strong_compoents) {
     //     for (const auto& state : vec) {
@@ -75,8 +76,9 @@ int main(int argc, char* argv[]) {
 
     // TASK 3
     // ================================================================================
-    // std::map<int, std::vector<std::set<State>>> equivalence_classes = fsm.get_equivalence_classes();
-    // for (auto entry : equivalence_classes) {
+    // FSM fsm(n, phi, psi);
+    // fsm.get_equivalence_classes();
+    // for (auto entry : fsm.equivalence_classes) {
     //     std::cout << "Классы эквивалентности " << entry.first << std::endl;
     //     for (auto s : entry.second) {
     //         std::cout << "[";
@@ -88,16 +90,20 @@ int main(int argc, char* argv[]) {
     //     std::cout << std::endl;
     // }
 
-    // std::cout << "Степень различимости автомата, delta(A): " << equivalence_classes.size() << std::endl;
-    // std::cout << "mu(A): " << equivalence_classes[equivalence_classes.size()].size() << std::endl;
+    // fsm.compute_delta();
+    // fsm.compute_mu();
+    // std::cout << "Степень различимости автомата, delta(A): " << fsm.delta << std::endl;
+    // std::cout << "mu(A): " << fsm.mu << std::endl;
     // ================================================================================
 
     // TASK 4
     // ================================================================================
+    // FSM fsm(n, phi, psi);
     fsm.compute_memory_function();
     // ================================================================================
     // TASK 5
     // ================================================================================
+    // FSM fsm(n, phi, psi);
     // std::vector<int> min_polynomial = fsm.compute_min_polynomial(init_state);
     // std::cout << "Минимальный многочлен: ";
     // for (auto coef : min_polynomial) {

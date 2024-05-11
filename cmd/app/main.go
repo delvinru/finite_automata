@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/delvinru/finite_automata/internal/fsm"
@@ -13,8 +14,15 @@ func main() {
 	n := flag.Int("n", 0, "length of zhegalkin polynom")
 	phi := flag.String("phi", "", "function for fsm")
 	psi := flag.String("psi", "", "function for fsm")
-	initState := flag.String("init_state", "", "initial state for berlekamp massey")
+	// initState := flag.String("init_state", "", "initial state for berlekamp massey")
+
+	verbose := flag.Bool("v", false, "Verbose logging")
+
 	flag.Parse()
+
+	if *verbose {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
+	}
 
 	if len(os.Args) == 1 {
 		fmt.Printf("Usage: %v [-file] [-n]\n", os.Args[0])
@@ -28,20 +36,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	connectedComponents := fsm.ConnectedComponents()
-	fmt.Println("ConnectedComponents:", connectedComponents)
-	strongConnectedComponents := fsm.StrongConnectedComponents()
-	fmt.Println("StrongConnectedComponents:", strongConnectedComponents)
-	fmt.Println()
+	// connectedComponents := fsm.ConnectedComponents()
+	// fmt.Println("ConnectedComponents:", connectedComponents)
+	// strongConnectedComponents := fsm.StrongConnectedComponents()
+	// fmt.Println("StrongConnectedComponents:", strongConnectedComponents)
+	// fmt.Println()
 
-	fsm.GetEquivalenceClasses()
-	fmt.Println("Equivalence Classess:", fsm.EquivalenceClasses)
-	fmt.Println("delta(A):", fsm.Delta)
-	fmt.Println("mu(A):", fsm.Mu)
+	// fsm.GetEquivalenceClasses()
+	// fmt.Println("Equivalence Classess:", fsm.EquivalenceClasses)
+	// fmt.Println("delta(A):", fsm.Delta)
+	// fmt.Println("mu(A):", fsm.Mu)
 
-	fmt.Println()
+	// TEST
+	fsm.MemoryFunction()
 
-	minimalPolynomial, _ := fsm.ComputeMinimalPolynomial(*initState)
-	fmt.Println("Minimal Polynomial:", minimalPolynomial)
-	fmt.Println("Linear Complexity:", len(minimalPolynomial))
+	// minimalPolynomial, _ := fsm.ComputeMinimalPolynomial(*initState)
+	// fmt.Println("Minimal Polynomial:", minimalPolynomial)
+	// fmt.Println("Linear Complexity:", len(minimalPolynomial))
 }

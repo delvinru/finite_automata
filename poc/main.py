@@ -341,11 +341,12 @@ class FSM:
         all_edges_list: set[tuple[int]] = set()
         count = 0
         for key_state in fsm.table.keys():
-            edges_list: set[tuple[int]] = set()
+
+            edges_list: list[list[int]] = list()
             for value_state, edges in fsm.table.items():
                 for i in range(len(edges)):
-                    tmp_set = tuple([i] + [edges[1][i]])
-                    if edges[0][i] == key_state and tmp_set not in edges_list:
+                    tmp_list = [[i], [edges[1][i]]]
+                    if edges[0][i] == key_state and tmp_list not in edges_list:
                         q_1[key_state].append({value_state: [[i], [edges[1][i]]]})
                         edges_list.add(tmp_set)
                         all_edges_list.add(tmp_set)

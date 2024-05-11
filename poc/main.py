@@ -4,10 +4,6 @@ from pprint import pprint
 import argparse
 from collections import defaultdict
 from copy import deepcopy
-import linecache
-import os
-# import tracemalloc
-import sys
 import gc
 
 class State:
@@ -223,13 +219,13 @@ class FSM:
         self.equivalence_classes = equivalence_classes
         return None
 
-    def compute_delta(self):
+    def compute_delta(self) -> None:
         # Проверяем, что уже вычислили классы эквивалентности
         if len(self.equivalence_classes.keys()) == 0:
             self.get_equivalence_classes()
         self.delta = len(self.equivalence_classes.keys())
 
-    def compute_mu(self):
+    def compute_mu(self) -> None:
         # Проверяем, что уже вычислили классы эквивалентности
         if len(self.equivalence_classes.keys()) == 0:
             self.get_equivalence_classes()
@@ -310,7 +306,7 @@ class FSM:
 
     # Нужно для определения памяти автомата
     def _is_equal_edges_in_q(self, q: dict[State, list[dict[State, list[list[int]]]]]) -> bool:
-        unique_edges = set()
+        unique_edges: set[tuple[list[int], list[int]]] = set()
         for edges in q.values():
             for edge in edges:
                 for pair in edge.values():
@@ -319,31 +315,6 @@ class FSM:
                         return True
                     unique_edges.add(tuple_pair)
         return False
-
-    def display_top(self, snapshot, key_type='lineno', limit=3):
-        snapshot = snapshot.filter_traces((
-            tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
-            tracemalloc.Filter(False, "<unknown>"),
-        ))
-        top_stats = snapshot.statistics(key_type)
-
-        print("Top %s lines" % limit)
-        for index, stat in enumerate(top_stats[:limit], 1):
-            frame = stat.traceback[0]
-            # replace "/path/to/module/file.py" with "module/file.py"
-            filename = os.sep.join(frame.filename.split(os.sep)[-2:])
-            print("#%s: %s:%s: %.1f KiB"
-                % (index, filename, frame.lineno, stat.size / 1024))
-            line = linecache.getline(frame.filename, frame.lineno).strip()
-            if line:
-                print('    %s' % line)
-
-        other = top_stats[limit:]
-        if other:
-            size = sum(stat.size for stat in other)
-            print("%s other: %.1f KiB" % (len(other), size / 1024))
-        total = sum(stat.size for stat in top_stats)
-        print("Total allocated size: %.1f KiB" % (total / 1024))
 
     # Добавить проверку на минимальность автомата и построение нового в случае чего
     def compute_memory_function(self):
@@ -384,7 +355,6 @@ class FSM:
         while fsm._is_equal_edges_in_q(q_s[-1]) and len(q_s) <= max_steps:
             # start compute q_2, q_3, ...
             next_q: dict[State, list[dict[State, list[list[int]]]]] = defaultdict(list)
-            print(len(q_s))
 
             for state, edges in q_s[-1].items():
                 edges_list: set[tuple[int]] = set()
@@ -446,9 +416,9 @@ class FSM:
                 equivalent_state = set_states[0]
                 for i in range(1, len_set):
                     for table_tuple in self.table.values():
-                        for i, state in enumerate(table_tuple[0]):
+                        for j, state in enumerate(table_tuple[0]):
                             if state == set_states[i]:
-                                table_tuple[0][i] = equivalent_state
+                                table_tuple[0][j] = equivalent_state
                     del self.table[set_states[i]]
 
         self.get_equivalence_classes()

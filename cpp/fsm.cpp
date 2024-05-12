@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <omp.h>
 
 class FSM {
     private:
@@ -517,10 +518,19 @@ class FSM {
             while (this->is_equal_edges_in_q(q_s.back()) && q_s.size() <= max_steps) {
                 std::map<State, std::vector<std::map<State, std::vector<std::vector<int>>>>> next_q;
 
+                uint64_t n = q_s.back().size();
+                std::vector<State> vertexes;
+                for (auto const& entry: q_s.back()) {
+                    vertexes.push_back(entry.first);
+                }
+
+                // for (auto entry: q_s.back()) {
                 #pragma omp parallel for
-                for (auto entry: q_s.back()) {
-                    State state = entry.first;
-                    std::vector<std::map<State, std::vector<std::vector<int>>>> edges = entry.second;
+                for (int i = 0; i < n; i++) {
+                    State state = vertexes[i];
+                    std::vector<std::map<State, std::vector<std::vector<int>>>> edges = q_s.back()[state];
+                    // State state = entry.first;
+                    // std::vector<std::map<State, std::vector<std::vector<int>>>> edges = entry.second;
                     std::set<std::tuple<std::vector<int>>> edges_list;
 
                     // #pragma omp parallel for

@@ -5,6 +5,7 @@ import argparse
 from collections import defaultdict
 from copy import deepcopy
 import gc
+from dataclasses import dataclass
 
 class State:
     def __init__(self, key: list[int]) -> None:
@@ -33,6 +34,11 @@ class State:
     def __repr__(self) -> str:
         return ''.join(map(str, self.key))
 
+class EdgePair:
+    first_component: list[int]
+    second_component: list[int]
+
+    state: State
 
 class Graph:
     def __init__(self) -> None:
@@ -316,6 +322,18 @@ class FSM:
                     unique_edges.add(tuple_pair)
         return False
 
+    def new_memory_function(self) -> None:
+        # Проверяем, вычисляли мы до этого классы эквивалентности или нет
+        if len(self.equivalence_classes.keys()) == 0:
+            self.get_equivalence_classes()
+            self.compute_mu()
+            self.compute_delta()
+
+        fsm: FSM = deepcopy(self)
+
+        q: dict[State, list[Pair[list[int], State]]]
+        q: dict[State, list[EdgePair]]
+
     # Добавить проверку на минимальность автомата и построение нового в случае чего
     def compute_memory_function(self):
         # Проверяем, вычисляли мы до этого классы эквивалентности или нет
@@ -348,8 +366,8 @@ class FSM:
                     tmp_list = [[i], [edges[1][i]]]
                     if edges[0][i] == key_state and tmp_list not in edges_list:
                         q_1[key_state].append({value_state: [[i], [edges[1][i]]]})
-                        edges_list.add(tmp_set)
-                        all_edges_list.add(tmp_set)
+                        edges_list.append(tmp_list)
+                        all_edges_list.add(tmp_list)
                         count += 1
         q_s = [q_1]
 

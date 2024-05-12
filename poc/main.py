@@ -585,7 +585,7 @@ class FSM:
 
 def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
     fsm = FSM(n, phi, psi)
-    # pprint(fsm.table)
+    pprint(fsm.table)
 
     # # TASK 1
     # print("TASK 1")
@@ -608,8 +608,8 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
     # print(f"mu(A): {fsm.mu}")
 
     # TASK 4
-    print("TASK 4")
-    fsm.compute_memory_function()
+    # print("TASK 4")
+    # fsm.compute_memory_function()
 
     # # TASK 5
     # min_polynomial = fsm.compute_min_polynomial(init_state)

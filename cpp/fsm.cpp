@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <omp.h>
 
 class FSM {
     private:
@@ -517,34 +518,43 @@ class FSM {
             while (this->is_equal_edges_in_q(q_s.back()) && q_s.size() <= max_steps) {
                 std::map<State, std::vector<std::map<State, std::vector<std::vector<int>>>>> next_q;
 
+                uint64_t n = q_s.back().size();
+                std::vector<State> vertexes;
+                for (auto const& entry: q_s.back()) {
+                    vertexes.push_back(entry.first);
+                }
+
+                // for (auto entry: q_s.back()) {
                 #pragma omp parallel for
-                for (auto entry: q_s.back()) {
-                    State state = entry.first;
-                    std::vector<std::map<State, std::vector<std::vector<int>>>> edges = entry.second;
+                for (int i = 0; i < n; i++) {
+                    State state = vertexes[i];
+                    std::vector<std::map<State, std::vector<std::vector<int>>>> edges = q_s.back()[state];
+                    // State state = entry.first;
+                    // std::vector<std::map<State, std::vector<std::vector<int>>>> edges = entry.second;
                     std::set<std::tuple<std::vector<int>>> edges_list;
 
-                    #pragma omp parallel for
+                    // #pragma omp parallel for
                     for (auto edge: edges) {
                         auto from_state = edge.begin()->first;
                         auto values = edge.begin()->second;
 
-                        #pragma omp parallel for
+                        // #pragma omp parallel for
                         for (auto edges_from_state: q_1[from_state]) {
-                            #pragma omp parallel for
+                            // #pragma omp parallel for
                             for (auto another: edges_from_state) {
                                 State another_state = another.first;
                                 std::vector<std::vector<int>> another_edge = another.second;
                                 std::vector<int> tmp_vector;
-                                #pragma omp parallel for
+                                // #pragma omp parallel for
                                 for (auto el: another_edge[0])
                                     tmp_vector.push_back(el);
-                                #pragma omp parallel for
+                                // #pragma omp parallel for
                                 for (auto el: values[0])
                                     tmp_vector.push_back(el);
-                                #pragma omp parallel for
+                                // #pragma omp parallel for
                                 for (auto el: another_edge[1])
                                     tmp_vector.push_back(el);
-                                #pragma omp parallel for
+                                // #pragma omp parallel for
                                 for (auto el: values[1])
                                     tmp_vector.push_back(el);
 
@@ -554,17 +564,17 @@ class FSM {
                                     std::vector<int> temp1;
                                     std::vector<int> temp2;
                                     std::vector<std::vector<int>> temp;
-                                    #pragma omp parallel for
+                                    // #pragma omp parallel for
                                     for (auto el: another_edge[0])
                                         temp1.push_back(el);
-                                    #pragma omp parallel for
+                                    // #pragma omp parallel for
                                     for (auto el: values[0])
                                         temp1.push_back(el);
                                     temp.push_back(temp1);
-                                    #pragma omp parallel for
+                                    // #pragma omp parallel for
                                     for (auto el: another_edge[1])
                                         temp2.push_back(el);
-                                    #pragma omp parallel for
+                                    // #pragma omp parallel for
                                     for (auto el: values[1])
                                         temp2.push_back(el);
                                     temp.push_back(temp2);                
@@ -582,38 +592,38 @@ class FSM {
             }
 
         // std::vector<std::vector<int>>
-            int i = 1;
-            #pragma omp parallel for
-            for (auto q : q_s) {
-                std::cout << "q_" << i << std::endl;
-                #pragma omp parallel for
-                for (auto first_entry : q) {
-                    std::cout << first_entry.first << ": ";
-                    #pragma omp parallel for
-                    for (auto second_entry : first_entry.second) {
-                        std::cout << "[";
-                        #pragma omp parallel for
-                        for (auto third_entry : second_entry) {
-                            std::cout << "{";
-                            std::cout << third_entry.first << ": ";
-                            std::cout << "[";
-                            #pragma omp parallel for
-                            for (auto fourth_entry : third_entry.second) {
-                                std::cout << "<";
-                                for (auto el : fourth_entry) {
-                                    std::cout << el;
-                                }
-                                std::cout << "> ";
-                            }
-                            std::cout << "] ";
-                            std::cout << "} ";
-                        }
-                        std::cout << "] ";
-                    }
-                    std::cout << std::endl;
-                }
-                i++;
-            }
+            // int i = 1;
+            // #pragma omp parallel for
+            // for (auto q : q_s) {
+            //     std::cout << "q_" << i << std::endl;
+            //     #pragma omp parallel for
+            //     for (auto first_entry : q) {
+            //         std::cout << first_entry.first << ": ";
+            //         #pragma omp parallel for
+            //         for (auto second_entry : first_entry.second) {
+            //             std::cout << "[";
+            //             #pragma omp parallel for
+            //             for (auto third_entry : second_entry) {
+            //                 std::cout << "{";
+            //                 std::cout << third_entry.first << ": ";
+            //                 std::cout << "[";
+            //                 #pragma omp parallel for
+            //                 for (auto fourth_entry : third_entry.second) {
+            //                     std::cout << "<";
+            //                     for (auto el : fourth_entry) {
+            //                         std::cout << el;
+            //                     }
+            //                     std::cout << "> ";
+            //                 }
+            //                 std::cout << "] ";
+            //                 std::cout << "} ";
+            //             }
+            //             std::cout << "] ";
+            //         }
+            //         std::cout << std::endl;
+            //     }
+            //     i++;
+            // }
             std::cout << "m(A) = " << q_s.size() << std::endl;
         }
 };

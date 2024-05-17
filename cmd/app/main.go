@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/delvinru/finite_automata/internal/fsm"
+	"github.com/lmittmann/tint"
 )
 
 func main() {
@@ -20,8 +22,21 @@ func main() {
 
 	flag.Parse()
 
+	w := os.Stderr
 	if *verbose {
-		slog.SetLogLoggerLevel(slog.LevelDebug)
+		slog.SetDefault(slog.New(
+			tint.NewHandler(w, &tint.Options{
+				Level:      slog.LevelDebug,
+				TimeFormat: time.Kitchen,
+			}),
+		))
+	} else {
+		slog.SetDefault(slog.New(
+			tint.NewHandler(w, &tint.Options{
+				Level:      slog.LevelWarn,
+				TimeFormat: time.Kitchen,
+			}),
+		))
 	}
 
 	if len(os.Args) == 1 {
@@ -36,8 +51,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// connectedComponents := fsm.ConnectedComponents()
-	// fmt.Println("ConnectedComponents:", connectedComponents)
+	connectedComponents := fsm.ConnectedComponents()
+	fmt.Println("ConnectedComponents:", connectedComponents)
 	// strongConnectedComponents := fsm.StrongConnectedComponents()
 	// fmt.Println("StrongConnectedComponents:", strongConnectedComponents)
 	// fmt.Println()
@@ -48,7 +63,7 @@ func main() {
 	// fmt.Println("mu(A):", fsm.Mu)
 
 	// TEST
-	fsm.MemoryFunction()
+	// fsm.MemoryFunction()
 
 	// minimalPolynomial, _ := fsm.ComputeMinimalPolynomial(*initState)
 	// fmt.Println("Minimal Polynomial:", minimalPolynomial)

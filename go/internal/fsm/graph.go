@@ -41,7 +41,7 @@ func (g *Graph) ConnectedComponents() [][]State {
 			component := []State{}
 			g.dfs(&state, visited, &component)
 			slog.Info(
-				"found",
+				"get",
 				"component", component,
 			)
 			connectedComponents = append(connectedComponents, component)
@@ -64,6 +64,7 @@ func (g *Graph) transposeGraph() *Graph {
 }
 
 func (g *Graph) StrongConnectedComponents() [][]State {
+	slog.Info("computing strong connected components")
 	stack := make([]State, 0, len(g.graph))
 	visited := make(map[State]bool, len(g.graph))
 
@@ -84,6 +85,10 @@ func (g *Graph) StrongConnectedComponents() [][]State {
 		if !visited[state] {
 			component := []State{}
 			transposedGraph.dfs(&state, visited, &component)
+			slog.Info(
+				"get",
+				"component", component,
+			)
 			strongComponents = append(strongComponents, component)
 		}
 	}

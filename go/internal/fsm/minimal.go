@@ -1,5 +1,9 @@
 package fsm
 
+func (f *FSM) MemoryFunction() {
+
+}
+
 // func (f *FSM) minimization() {
 // 	// assume that equivalence classes already precomputed
 

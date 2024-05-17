@@ -347,7 +347,6 @@ class FSM:
         # all_edges_list: set[tuple[int]] = set()
         # count = 0
         for key_state in fsm.table.keys():
-
             edges_list: list[list[int]] = list()
             for value_state, edges in fsm.table.items():
                 for i in range(len(edges)):
@@ -363,13 +362,8 @@ class FSM:
         max_steps = (fsm.mu * (fsm.mu - 1)) / 2
         # Проверяем, что еще есть дублирующиеся элементы и мы не достигли счетчика
 
-        # print(len(q_s))
         print(f"[+] Вычислили q_{len(q_s)}")
         while fsm._is_equal_edges_in_q(q_s[-1]) and len(q_s) <= max_steps:
-        # while count != len(all_edges_list) and len(q_s) <= max_steps:
-            # count = 0
-            # all_edges_list.clear()
-            # start compute q_2, q_3, ...
             next_q: dict[State, list[dict[State, list[list[int]]]]] = defaultdict(list)
 
             for state, edges in q_s[-1].items():
@@ -377,6 +371,10 @@ class FSM:
                 
                 for edge in edges:
                     from_state, values = list(edge.items())[0]
+
+                    # TODO: SOME MAGIC SHIT, LOOK UP AT ME, DON'T IGNORE, DON'T IGNORE
+                    if from_state not in q_1:
+                        continue
 
                     for edges_from_state in q_1[from_state]:
                         for another_state, another_edge in edges_from_state.items():
@@ -780,12 +778,14 @@ def generate_tgf_format(graph: Graph) -> None:
 def generate_edges_format(graph: Graph) -> None:
     mapping: dict[State, int] = {}
 
+    fd = open("graph.edges", "w")
+
     for i, key in enumerate(graph.graph.keys()):
         mapping.update({key: i+1})
 
     for key, value in graph.graph.items():
         for el in value:
-            print(f"{mapping.get(key)} -> {mapping.get(el)}")
+            print(f"{mapping.get(key)} -> {mapping.get(el)}", file=fd)
 # end helper functions
 
 

@@ -1,6 +1,7 @@
 package fsm
 
 import (
+	"log/slog"
 	"slices"
 )
 
@@ -104,6 +105,7 @@ func (f *FSM) GetEquivalenceClasses() map[int][][]State {
 	equivalenceClasses := map[int][][]State{
 		1: f.getFirstClasses(),
 	}
+	slog.Debug("class", "k", 1, "class", equivalenceClasses[1])
 
 	for k := 1; ; k++ {
 		newClass := f.computeKClasses(equivalenceClasses[k])
@@ -117,6 +119,8 @@ func (f *FSM) GetEquivalenceClasses() map[int][][]State {
 		}) {
 			break
 		}
+
+		slog.Debug("class", "k", k+1, "class", newClass)
 
 		equivalenceClasses[k+1] = newClass
 	}

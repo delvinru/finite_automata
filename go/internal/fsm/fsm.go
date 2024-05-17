@@ -20,34 +20,17 @@ type FSM struct {
 	graph Graph
 	table map[State]Pair[[]State, []uint8]
 
+	// Computed components
+	ConnectedComponents       [][]State
+	StrongConnectedComponents [][]State
+
 	// characteristics of the fsm
 	EquivalenceClasses map[int][][]State
 	Delta              int
 	Mu                 int
 }
 
-func (f *FSM) ConnectedComponents() [][]State {
-	return f.graph.ConnectedComponents()
-}
-
-func (f *FSM) StrongConnectedComponents() [][]State {
-	return f.graph.StrongConnectedComponents()
-}
-
-func getFunctionCoeffs(function string) ([]uint8, error) {
-	coeffs := make([]uint8, len(function))
-
-	for idx := range len(function) {
-		n := function[idx] - 0x30
-		if n != 0 && n != 1 {
-			return nil, errors.New("function coeffs can be only 0 or 1")
-		}
-		coeffs[idx] = n
-	}
-	return coeffs, nil
-}
-
-func New(n int, phi string, psi string) (FSM, error) {
+func NewFSM(n int, phi string, psi string) (FSM, error) {
 	phis, err := getFunctionCoeffs(phi)
 	if err != nil {
 		return FSM{}, err
@@ -81,6 +64,10 @@ func New(n int, phi string, psi string) (FSM, error) {
 	// Init graph
 	initFsm(&fsm)
 
+	// Computed components
+	fsm.connectedComponents()
+	fsm.strongConnectedComponents()
+
 	return fsm, nil
 }
 
@@ -107,6 +94,27 @@ func initFsm(fsm *FSM) {
 
 		fsm.table[graphNode] = Pair[[]State, []uint8]{phis, psis}
 	}
+}
+
+func (f *FSM) connectedComponents() {
+	f.ConnectedComponents = f.graph.ConnectedComponents()
+}
+
+func (f *FSM) strongConnectedComponents() {
+	f.StrongConnectedComponents = f.graph.StrongConnectedComponents()
+}
+
+func getFunctionCoeffs(function string) ([]uint8, error) {
+	coeffs := make([]uint8, len(function))
+
+	for idx := range len(function) {
+		n := function[idx] - 0x30
+		if n != 0 && n != 1 {
+			return nil, errors.New("function coeffs can be only 0 or 1")
+		}
+		coeffs[idx] = n
+	}
+	return coeffs, nil
 }
 
 // chat gpt, i'm ok with this

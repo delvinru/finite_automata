@@ -27,14 +27,14 @@ func main() {
 		slog.SetDefault(slog.New(
 			tint.NewHandler(w, &tint.Options{
 				Level:      slog.LevelDebug,
-				TimeFormat: time.Kitchen,
+				TimeFormat: time.DateTime,
 			}),
 		))
 	} else {
 		slog.SetDefault(slog.New(
 			tint.NewHandler(w, &tint.Options{
 				Level:      slog.LevelWarn,
-				TimeFormat: time.Kitchen,
+				TimeFormat: time.DateTime,
 			}),
 		))
 	}
@@ -45,25 +45,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	fsm, err := fsm.New(*n, *phi, *psi)
+	fsm, err := fsm.NewFSM(*n, *phi, *psi)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	connectedComponents := fsm.ConnectedComponents()
-	fmt.Println("ConnectedComponents:", connectedComponents)
-	// strongConnectedComponents := fsm.StrongConnectedComponents()
-	// fmt.Println("StrongConnectedComponents:", strongConnectedComponents)
-	// fmt.Println()
+	fmt.Printf("ConnectedComponents: %v\n", len(fsm.ConnectedComponents))
+	for i, value := range fsm.ConnectedComponents {
+		fmt.Printf("Adj_comp # %v: %v\n", i, value)
+	}
 
-	// fsm.GetEquivalenceClasses()
-	// fmt.Println("Equivalence Classess:", fsm.EquivalenceClasses)
-	// fmt.Println("delta(A):", fsm.Delta)
-	// fmt.Println("mu(A):", fsm.Mu)
+	fmt.Println()
+
+	fmt.Printf("StrongConnectedComponents: %v\n", len(fsm.StrongConnectedComponents))
+	for i, value := range fsm.StrongConnectedComponents {
+		fmt.Printf("Strong_adj_comp # %v: %v\n", i, value)
+	}
+	fmt.Println()
+
+	fsm.GetEquivalenceClasses()
+	fmt.Println("Equivalence Classess:", fsm.EquivalenceClasses)
+	fmt.Println("delta(A):", fsm.Delta)
+	fmt.Println("mu(A):", fsm.Mu)
+	fmt.Println()
 
 	// TEST
-	// fsm.MemoryFunction()
+	fsm.MemoryFunction()
 
 	// minimalPolynomial, _ := fsm.ComputeMinimalPolynomial(*initState)
 	// fmt.Println("Minimal Polynomial:", minimalPolynomial)

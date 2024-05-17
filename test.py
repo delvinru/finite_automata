@@ -1,95 +1,73 @@
-from typing import List
+from poc.main import *
 
-def find_combinations(arr, k):
-    result = []
-    n = len(arr)
+def compute_memory_function(self):
+    # Проверяем, вычисляли мы до этого классы эквивалентности или нет
+    if len(self.equivalence_classes.keys()) == 0:
+        self.get_equivalence_classes()
+        self.compute_mu()
+        self.compute_delta()
+
+    fsm: FSM = deepcopy(self)
+
+    # self.table: dict[State, tuple[list[State], list[int]]] = dict()
+    # q_1: dict[State, list[dict[State, list[list[int]]]]] = dict()
+    q_1: dict[State, list[dict[list[list[int]]]], State] = dict()
+    # dict[State, ... State - состояние, в которое входят ребра
+    # dict[State, list[int]]]
+    # State - состояние, из которого выходит ребро
+    # list[int] - пара значений. Первое - входное значение, второе - выходное
+    # generate q_1
+
+    # Проверяем, является ли автомат минимальным
+    if fsm.mu != len(fsm.table.keys()):
+        fsm._minimization()
+
+    for key_state in fsm.table.keys():
+        q_1.setdefault(key_state, list())
+        for value_state, edges in fsm.table.items():
+            for i in range(len(edges)):
+                if edges[0][i] == key_state:
+                    dicts = [el for el in q_1[key_state]]
+                    if [[i], [edges[1][i]]] not in dicts:
+                        q_1[key_state].append({[[i], [edges[1][i]]]: value_state})
+                    # q_1[key_state].append({value_state: [[i], [edges[1][i]]]})
+    # Теперь чистим повторяющиеся в классах элементы
     
-    # Вспомогательная функция для поиска комбинаций
-    def backtrack(start, combination):
-        if len(combination) == k:
-            result.append(combination[:])
-            return
-        for i in range(start, n):
-            combination.append(arr[i])
-            backtrack(i + 1, combination)
-            combination.pop()
+    q_s = [q_1]
 
-    backtrack(0, [])
-    return result
+    # Число, при достижении которого мы говорим, что память автомата бесконечна
+    max_steps = (fsm.mu * (fsm.mu - 1)) / 2
+    # Проверяем, что еще есть дублирующиеся элементы и мы не достигли счетчика
+    count = 1
+    print(f"Вычислили Q_{count}")
+    while fsm._is_equal_edges_in_q(q_s[-1]) and len(q_s) <= max_steps:
+        # start compute q_2, q_3, ...
+        next_q: dict[State, list[dict[list[list[int]]]], State] = dict()
 
-def compute_ZP(input_x: int,
-               current_state: List[int],
-               coefs: List[int]) -> List[int]:
-    ZP = []
+        for key_state, states_edges in q_s[-1].items():
+            next_q.setdefault(key_state, list())
+            for i in range(len(states_edges)):
+                for edge, state in states_edges[i].items():
+                    for another_states_another_edges in q_1[state]:
+                        for another_edge, another_state in another_states_another_edges.items():
+                            dicts = [el for el in next_q[key_state]]
+                            if [another_edge[0] + edge[0], another_edge[1] + edge[1]] not in dicts:
+                                next_q[key_state].append({[another_edge[0] + edge[0],
+                                                                    another_edge[1] + edge[1]]: another_state})
+        # Теперь чистим повторяющиеся в классах элементы
 
-    extended_current_state = []
-    for el in current_state:
-        extended_current_state.append(el)
-    extended_current_state.append(input_x)
-    
-    ZP.append(1)  # начальное значение
-    
-    for i in range(1, len(extended_current_state) + 2):
-        combinations = find_combinations(extended_current_state, i)
-        for el in combinations:
-            # Произведение переменных в текущей комбинации
-            product = 1
-            for num in el:
-                product *= num
-            ZP.append(product)
+        count += 1
+        print(f"Вычислили Q_{count}")
+        q_s.append(next_q)
 
-    for i in range(2 ** len(extended_current_state)):
-        ZP[i] = ZP[i] * coefs[i]
-    # print(ZP, ZP.count(1))
-    return ZP.count(1) % 2
-
-# Пример использования функции
-# input_x = 1
-# current_state = [1, 1]
-# n = 2
-# phi = [0, 1, 0, 1, 0, 0, 0, 0]
-# psi = [0, 0, 0, 0, 1, 0, 1, 0]
-# phi_value = compute_ZP(input_x, current_state, phi)
-# new_state = current_state[1:] + [phi_value]
-
-n = 2
-phi = [0, 1, 0, 1, 0, 0, 0, 0]
-psi = [0, 0, 0, 0, 1, 0, 1, 0]
-
-from itertools import product
-all_states = product(range(n), repeat=n)
-
-for state in all_states:
-    for x in range(2):
-        t = compute_ZP(input_x=x, current_state=list(state), coefs=phi)
-        print(f"{state=} {x=} new_state={list(state)[1:] + [t]}", end="")
-        psi_small = compute_ZP(input_x=x, current_state=list(state), coefs=psi)
-        print(f"{psi_small=}", end="|")
-    print()
-
-
-# current_state = [0, 0]
-# for x in range(2):
-#     tmp = compute_ZP(input_x=x, current_state, phi)
-#     current_state = 
-
-# print(f"Input x: {input_x}")
-# print(f"Current state: {current_state}")
-# print(f"Phi value: {phi_value}")
-# print(f"Phi: {phi}")
-# print(f"New state: {new_state}")
-
-# def compute_ZP(input_x: str, state: List[str]) -> List[List[str]]:
-#     ZP = []
-#     state.append(input_x)
-#     ZP.append([1])  # начальное значение
-    
-#     for i in range(1, len(state) + 2):
-#         combinations = find_combinations(state, i)
-#         for el in combinations:
-#             # Произведение переменных в текущей комбинации
-#             product = '*'.join(el)
-#             ZP.append([product])
-#     return ZP
-
-# print(compute_ZP("x", ["x_1", "x_2"], 2))
+# Нужно для определения памяти автомата
+def _is_equal_edges_in_q(self, q: dict[State, list[dict[State, list[int]]]]) -> bool:
+    unique_edges = set()
+    for edges in q.values():
+        for edge in edges:
+            for pair in edge.keys():
+                tuple_pair = tuple(pair[0] + pair[1])
+                if tuple_pair in unique_edges:
+                    return True
+                unique_edges.add(tuple_pair)
+    return False

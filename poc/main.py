@@ -322,20 +322,8 @@ class FSM:
                     unique_edges.add(tuple_pair)
         return False
 
-    def new_memory_function(self) -> None:
-        # Проверяем, вычисляли мы до этого классы эквивалентности или нет
-        if len(self.equivalence_classes.keys()) == 0:
-            self.get_equivalence_classes()
-            self.compute_mu()
-            self.compute_delta()
-
-        fsm: FSM = deepcopy(self)
-
-        q: dict[State, list[Pair[list[int], State]]]
-        q: dict[State, list[EdgePair]]
-
     # Добавить проверку на минимальность автомата и построение нового в случае чего
-    def compute_memory_function(self):
+    def compute_memory_function(self, fw):
         # Проверяем, вычисляли мы до этого классы эквивалентности или нет
         if len(self.equivalence_classes.keys()) == 0:
             self.get_equivalence_classes()
@@ -356,8 +344,8 @@ class FSM:
         if fsm.mu != len(fsm.table.keys()):
             fsm._minimization()
 
-        all_edges_list: set[tuple[int]] = set()
-        count = 0
+        # all_edges_list: set[tuple[int]] = set()
+        # count = 0
         for key_state in fsm.table.keys():
 
             edges_list: list[list[int]] = list()
@@ -367,18 +355,20 @@ class FSM:
                     if edges[0][i] == key_state and tmp_list not in edges_list:
                         q_1[key_state].append({value_state: [[i], [edges[1][i]]]})
                         edges_list.append(tmp_list)
-                        all_edges_list.add(tmp_list)
-                        count += 1
+                        # all_edges_list.add(tmp_list)
+                        # count += 1
         q_s = [q_1]
 
         # Число, при достижении которого мы говорим, что память автомата бесконечна
         max_steps = (fsm.mu * (fsm.mu - 1)) / 2
         # Проверяем, что еще есть дублирующиеся элементы и мы не достигли счетчика
 
-        # while fsm._is_equal_edges_in_q(q_s[-1]) and len(q_s) <= max_steps:
-        while count != len(all_edges_list) and len(q_s) <= max_steps:
-            count = 0
-            all_edges_list.clear()
+        # print(len(q_s))
+        print(f"[+] Вычислили q_{len(q_s)}")
+        while fsm._is_equal_edges_in_q(q_s[-1]) and len(q_s) <= max_steps:
+        # while count != len(all_edges_list) and len(q_s) <= max_steps:
+            # count = 0
+            # all_edges_list.clear()
             # start compute q_2, q_3, ...
             next_q: dict[State, list[dict[State, list[list[int]]]]] = defaultdict(list)
 
@@ -394,8 +384,8 @@ class FSM:
                             if tmp_set not in edges_list:
                                 next_q[state].append({another_state: [another_edge[0] + values[0], another_edge[1] + values[1]]})
                                 edges_list.add(tmp_set)
-                                count += 1
-                                all_edges_list.add(tmp_set)                
+                                # count += 1
+                                # all_edges_list.add(tmp_set)                
 
             # sanches code (shit code)
             # for key_state, states_edges in q_s[-1].items():
@@ -411,26 +401,40 @@ class FSM:
             #                         edges_list.add(tmp_set)                
 
             q_s.append(next_q)
+            print(f"[+] Вычислили q_{len(q_s)}")
+
+        print("[+] Нашли все q_s")
 
         if len(q_s) > max_steps:
-            print("Память автомата бесконечна")
+            # print("Память автомата бесконечна")
+            fw.write("Память автомата бесконечна\n")
         else:
             for i, q in enumerate(q_s):
-                print(f"q_{i + 1}:")
-                print(q)
-                # pprint(q)
+                # print(f"q_{i + 1}:")
+                # print(q)
+                fw.write(f"q_{i + 1}:\n")
+                fw.write(f"{q}\n")
             memory = len(q_s)
-            print(f"Память автомата конечна: m(A)={memory}")
+            # print(f"Память автомата конечна: m(A)={memory}")
+            fw.write(f"Память автомата конечна: m(A)={memory}\n")
+
+            print("[+] Записали q_s в файл")
 
             gc.collect()
 
-            # memory_value_vector = fsm._get_memory_value_vector(q_s[-1], memory)
+            memory_value_vector = fsm._get_memory_value_vector(q_s[-1], memory)
+            print("[+] Вычислили вектор y_i")
             # print(memory_value_vector)
-            # fsm._convert_memory_vector_to_int(memory_value_vector)
+            fsm._convert_memory_vector_to_int(memory_value_vector)
             # print(memory_value_vector)
+            print("[+] Подставили вместо * нули в векторе y_i")
             # Может нужно, но не отрабатывает
-            # memory_function_coefs = fsm._get_memory_function_coefs(memory_value_vector)
-            # print(memory_function_coefs)
+            memory_function_coefs = fsm._get_memory_function_coefs(memory_value_vector)
+            # print("Коэфы",memory_function_coefs)
+            print("[+] Нашли коэффициенты перед слагаемыми МЖ функции y_i")
+            # print(self._get_memory_function_coefs_str(memory_function_coefs))
+            fw.write(f"{self._get_memory_function_coefs_str(memory_function_coefs)}\n\n")
+            print("[+] Записали коэффициенты перед слагаемыми МЖ функции y_i в файл")
 
     def _minimization(self) -> None:
         # Проверяем, вычисляли мы до этого классы эквивалентности или нет
@@ -457,7 +461,7 @@ class FSM:
         # print(self.delta)
         # print(self.equivalence_classes[self.delta])
 
-    def _get_memory_value_vector(self, q_last: dict[State, list[dict[State, list[list[int]]]]], memory: int):
+    def _get_memory_value_vector(self, q_last: dict[State, list[dict[State, list[list[int]]]]], memory: int) -> list[int]:
         memory_value_vector: list[int] = []
         large_table_dict: dict[tuple[tuple[int]], list[int]] = dict()
 
@@ -490,14 +494,64 @@ class FSM:
                 memory_vector[i] = 0
 
     # another zhegalin polynomial implementation
-    def _get_memory_function_coefs(self, vector: list[int]) -> list[int]:
-        vector_len = len(vector)
-        pascal_triangle: list[list[int]] = [[0 for j in range(vector_len)] for i in range(vector_len)]
-        for i in range(1, vector_len + 1):
-            pascal_triangle[i - 1][0] = vector[vector_len - i]
-            for j in range(1, i):
-                pascal_triangle[i - 1][j] = pascal_triangle[i - 2][j - 1] ^ pascal_triangle[i - 1][j - 1]
-        return pascal_triangle[vector_len - 1]
+    def _get_memory_function_coefs(self, seq: list[int]) -> list[int]:
+        # Ломается на больших значениях, гооооооол!
+        # vector_len = len(vector)
+        # pascal_triangle: list[list[int]] = [[0 for j in range(vector_len)] for i in range(vector_len)]
+        # for i in range(1, vector_len + 1):
+        #     pascal_triangle[i - 1][0] = vector[vector_len - i]
+        #     for j in range(1, i):
+        #         pascal_triangle[i - 1][j] = pascal_triangle[i - 2][j - 1] ^ pascal_triangle[i - 1][j - 1]
+        # return pascal_triangle[vector_len - 1]
+        # magavales realization
+
+        seq_left = []
+        seq_right = []
+        seq_out = []
+        temp1 = []
+        temp2 = []
+
+        seq_left = seq[:len(seq)//2]
+        seq_right = [(seq[i] + seq[i + len(seq)//2]) % 2 for i in range(len(seq)//2)]
+
+        if len(seq) == 2:
+            seq_out.extend([seq_left[0], seq_right[0]])
+            return seq_out
+
+        temp1 = self._get_memory_function_coefs(seq_left)
+        temp2 = self._get_memory_function_coefs(seq_right)
+
+        seq_out.extend(temp1)
+        seq_out.extend(temp2)
+
+        return seq_out
+    
+    def _get_memory_function_coefs_str(self, vector: list[int]) -> str:
+        vector_string = ""
+        if vector[0] == 1:
+           vector_string += "1 + "
+
+        for i in range(1, len(vector)):
+            if vector[i] == 1:
+                bin_value = bin(i)[2:].zfill((2 * self.n) + 1)
+                for coef, bit in enumerate(bin_value):
+                    if int(bit) == 1:
+                        coef_str = ""
+
+                        # compute coef_str
+                        if coef + 1 < self.n + 1:
+                            coef_str += "x_i"
+                            coef_str += f"-{self.n - coef}"
+                        elif coef + 1 > self.n + 1:
+                            coef_str += "y_i"
+                            coef_str += f"-{2 * self.n - coef + 1}"
+                        else:
+                            coef_str += "x_i"
+
+                        vector_string += coef_str
+                vector_string += " + "
+
+        return vector_string[:-2]
 
     # Тут вычисляем выходную последовательность автомата
     def _compute_u(self, init_state: list[int]) -> list[int]:
@@ -603,44 +657,112 @@ class FSM:
 
 def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
     fsm = FSM(n, phi, psi)
-    pprint(fsm.table)
+    # pprint(fsm.table)
+    # pprint(fsm.graph.graph)
+    with open("test.txt", "w") as fw:
+        # Add n to file
+        fw.write(f"n = {fsm.n}\n")
+        print("[+] Записали n в файл")
 
-    # # TASK 1
-    # print("TASK 1")
-    # weak_components = fsm.get_connected_components()
-    # print("res", weak_components)
+        # Add phi to file
+        fw.write("phi: ")
+        for el in fsm.phi:
+            fw.write(f"{el}")
+        fw.write("\n")
+        print("[+] Записали phi в файл")
 
-    # # TASK 2
-    # print("TASK 2")
-    # strong_compoents = fsm.get_strong_connected_components()
-    # print("res", strong_compoents)
+        # Add psi to file
+        fw.write("psi: ")
+        for el in fsm.psi:
+            fw.write(f"{el}")
+        fw.write("\n")
+        print("[+] Записали psi в файл")
 
+        # TASK 1
+        # print("TASK 1")
+        # weak_components = fsm.get_connected_components()
+        # for weak_component in weak_components:
+        #     print(weak_component)
+        # print(f"Количество компонент связности: {len(weak_components)}")
+        # print()
+        fw.write("TASK 1\n")
+        weak_components = fsm.get_connected_components()
+        print("[+] Сделали 1 лабу")
+        for weak_component in weak_components:
+            fw.write(f"{weak_component}\n")
+        fw.write(f"Количество компонент связности: {len(weak_components)}\n\n")
+        print("[+] Записали 1 лабу в файл")
 
-    # # TASK 3
-    # print("TASK 3")
-    # fsm.get_equivalence_classes()
-    # fsm.compute_delta()
-    # fsm.compute_mu()
-    # print(fsm.equivalence_classes)
-    # print(f"Степень различимости автомата, delta(A): {fsm.delta}")
-    # print(f"mu(A): {fsm.mu}")
+        # TASK 2
+        # print("TASK 2")
+        # strong_components = fsm.get_strong_connected_components()
+        # for strong_component in strong_components:
+        #     print(strong_component)
+        # print(f"Количество компонент сильной связности: {len(strong_components)}")
+        # print()
+        fw.write("TASK 2\n")
+        strong_components = fsm.get_strong_connected_components()
+        print("[+] Сделали 2 лабу")
+        for strong_component in strong_components:
+            fw.write(f"{strong_component}\n")
+        fw.write(f"Количество компонент сильной связности: {len(strong_components)}\n\n")
+        print("[+] Записали 2 лабу в файл")
 
-    # TASK 4
-    # print("TASK 4")
-    # fsm.compute_memory_function()
+        # TASK 3
+        # print("TASK 3")
+        # fsm.get_equivalence_classes()
+        # fsm.compute_delta()
+        # fsm.compute_mu()
+        # for c in fsm.equivalence_classes.values():
+        #     print(c)
+        # print(f"Степень различимости автомата, delta(A): {fsm.delta}")
+        # print(f"mu(A): {fsm.mu}")
+        fw.write("TASK 3\n")
+        fsm.get_equivalence_classes()
+        fsm.compute_delta()
+        fsm.compute_mu()
+        print("[+] Сделали 3 лабу")
+        for c in fsm.equivalence_classes.values():
+            fw.write(f"{c}\n")
+        fw.write(f"Степень различимости автомата, delta(A): {fsm.delta}\n")
+        fw.write(f"mu(A): {fsm.mu}\n\n")
+        print("[+] Записали 3 лабу в файл")
 
-    # # TASK 5
-    # min_polynomial = fsm.compute_min_polynomial(init_state)
-    # print(f"Min polynomial: {min_polynomial}")
+        # TASK 4
+        # print("TASK 4")
+        # fsm.compute_memory_function()
+        fw.write("TASK 4\n")
+        # TODO
+        fsm.compute_memory_function(fw)
+        print("[+] Записали 4 лабу в файл")
 
-    # if min_polynomial[0] == 1:
-    #     print("1 + ", end='')
-    # for i in range(1, len(min_polynomial)):
-    #     if min_polynomial[i] == 1:
-    #         print(f"x^{i} + ", end='')
-    # print()
+        # TASK 5
+        # print("TASK 5")
+        # min_polynomial_coefs = fsm.compute_min_polynomial(init_state)
+        # print(f"Минимальный многочлен: ", end="")
 
-    # print(f"Linear complexity: {len(min_polynomial)}")
+        # if min_polynomial_coefs[0] == 1:
+        #     print("1 + ", end='')
+        # for i in range(1, len(min_polynomial_coefs)):
+        #     if min_polynomial_coefs[i] == 1:
+        #         print(f"x^{i} + ", end='')
+
+        # print(f"Линейная сложность: {len(min_polynomial_coefs)}")
+        fw.write("TASK 5\n")
+        fw.write(f"Начальное состояние: {init_state}\n")
+        min_polynomial_coefs = fsm.compute_min_polynomial(init_state)
+        print("[+] Сделали 5 лабу")
+
+        min_polynomial = ""
+        if min_polynomial_coefs[0] == 1:
+            min_polynomial += "1 + "
+        for i in range(1, len(min_polynomial_coefs)):
+            if min_polynomial_coefs[i] == 1:
+                min_polynomial += f"x^{i} + "
+        fw.write(f"Минимальный многочлен: {min_polynomial}\n")
+
+        fw.write(f"Линейная сложность: {len(min_polynomial_coefs)}\n\n")
+        print("[+] Записали 5 лабу в файл")
     
 
 # helper functions for graph printing

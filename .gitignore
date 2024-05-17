@@ -1,3 +1,4 @@
 .vscode/*
 cpp/main
 cpp/*.txt
+go/app

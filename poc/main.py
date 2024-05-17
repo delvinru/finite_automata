@@ -606,9 +606,9 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
     pprint(fsm.table)
 
     # # TASK 1
-    # print("TASK 1")
-    # weak_components = fsm.get_connected_components()
-    # print("res", weak_components)
+    print("TASK 1")
+    weak_components = fsm.get_connected_components()
+    print("res", weak_components)
 
     # # TASK 2
     # print("TASK 2")

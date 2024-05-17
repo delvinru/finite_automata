@@ -1,5 +1,7 @@
 package fsm
 
+import "log/slog"
+
 type Graph struct {
 	graph map[State]map[State]bool
 }
@@ -12,9 +14,10 @@ func NewGraph() *Graph {
 
 func (g *Graph) AddEdge(source, destination State) {
 	// add connection
-	g.graph[source] = map[State]bool{
-		destination: true,
+	if g.graph[source] == nil {
+		g.graph[source] = make(map[State]bool)
 	}
+	g.graph[source][destination] = true
 }
 
 func (g *Graph) dfs(current *State, visited map[State]bool, component *[]State) {
@@ -29,6 +32,7 @@ func (g *Graph) dfs(current *State, visited map[State]bool, component *[]State) 
 }
 
 func (g *Graph) ConnectedComponents() [][]State {
+	slog.Info("computing connected components")
 	visited := make(map[State]bool, len(g.graph))
 	connectedComponents := [][]State{}
 
@@ -36,6 +40,10 @@ func (g *Graph) ConnectedComponents() [][]State {
 		if !visited[state] {
 			component := []State{}
 			g.dfs(&state, visited, &component)
+			slog.Info(
+				"found",
+				"component", component,
+			)
 			connectedComponents = append(connectedComponents, component)
 		}
 	}

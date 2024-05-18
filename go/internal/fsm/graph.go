@@ -40,7 +40,7 @@ func (g *Graph) ConnectedComponents() [][]State {
 		if !visited[state] {
 			component := []State{}
 			g.dfs(&state, visited, &component)
-			slog.Info(
+			slog.Debug(
 				"get",
 				"component", component,
 			)
@@ -85,7 +85,7 @@ func (g *Graph) StrongConnectedComponents() [][]State {
 		if !visited[state] {
 			component := []State{}
 			transposedGraph.dfs(&state, visited, &component)
-			slog.Info(
+			slog.Debug(
 				"get",
 				"component", component,
 			)

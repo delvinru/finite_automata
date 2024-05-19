@@ -40,9 +40,11 @@ class Graph {
         void second_dfs(State& node, std::set<State>& visited, std::vector<State>& component, Graph& transposed) {
             visited.insert(node);
             component.push_back(node);
-            for (State neighbor : transposed.graph.at(node)) {
-                if (visited.find(neighbor) == visited.end()) {
-                    second_dfs(neighbor, visited, component, transposed);
+            if (transposed.graph.find(node) != transposed.graph.end()) {
+                for (State neighbor : transposed.graph.at(node)) {
+                    if (visited.find(neighbor) == visited.end()) {
+                        second_dfs(neighbor, visited, component, transposed);
+                    }
                 }
             }
         }

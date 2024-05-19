@@ -410,8 +410,16 @@ class FSM:
             for i, q in enumerate(q_s):
                 # print(f"q_{i + 1}:")
                 # print(q)
-                fw.write(f"q_{i + 1}:\n")
-                fw.write(f"{q}\n")
+                # fw.write(f"q_{i + 1}:\n")
+                for s, elements in q.items():
+                    fw.write(f"q_{i + 1}({s}): ")
+                    fw.write(" |_| ".join([" ".join((str(l) for l in element.values())) for element in elements]))
+                    # for element in elements:
+                        # for l in element.values():
+                        #     fw.write(f"{l} |_| ")
+                    fw.write("\n")
+                fw.write("\n")
+                # fw.write(f"{q}\n")
             memory = len(q_s)
             # print(f"Память автомата конечна: m(A)={memory}")
             fw.write(f"Память автомата конечна: m(A)={memory}\n")
@@ -431,7 +439,7 @@ class FSM:
             # print("Коэфы",memory_function_coefs)
             print("[+] Нашли коэффициенты перед слагаемыми МЖ функции y_i")
             # print(self._get_memory_function_coefs_str(memory_function_coefs))
-            fw.write(f"{self._get_memory_function_coefs_str(memory_function_coefs)}\n\n")
+            fw.write(f"Функция памяти автомата: {self._get_memory_function_coefs_str(memory_function_coefs)}\n\n")
             print("[+] Записали коэффициенты перед слагаемыми МЖ функции y_i в файл")
 
     def _minimization(self) -> None:
@@ -538,18 +546,19 @@ class FSM:
 
                         # compute coef_str
                         if coef + 1 < self.n + 1:
-                            coef_str += "x_i"
-                            coef_str += f"-{self.n - coef}"
+                            coef_str += "x_(i"
+                            coef_str += f"-{self.n - coef})"
                         elif coef + 1 > self.n + 1:
-                            coef_str += "y_i"
-                            coef_str += f"-{2 * self.n - coef + 1}"
+                            coef_str += "y_(i"
+                            coef_str += f"-{2 * self.n - coef + 1})"
                         else:
                             coef_str += "x_i"
 
                         vector_string += coef_str
                 vector_string += " + "
 
-        return vector_string[:-2]
+        vector_string = vector_string.removesuffix(" + ")
+        return vector_string
 
     # Тут вычисляем выходную последовательность автомата
     def _compute_u(self, init_state: list[int]) -> list[int]:
@@ -686,7 +695,8 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
         fw.write("TASK 1\n")
         weak_components = fsm.get_connected_components()
         print("[+] Сделали 1 лабу")
-        for weak_component in weak_components:
+        for i, weak_component in enumerate(weak_components):
+            fw.write(f"Компонента связности {i+1}: ")
             fw.write(f"{weak_component}\n")
         fw.write(f"Количество компонент связности: {len(weak_components)}\n\n")
         print("[+] Записали 1 лабу в файл")
@@ -701,7 +711,8 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
         fw.write("TASK 2\n")
         strong_components = fsm.get_strong_connected_components()
         print("[+] Сделали 2 лабу")
-        for strong_component in strong_components:
+        for i, strong_component in enumerate(strong_components):
+            fw.write(f"Компонента сильной связности {i+1}: ")
             fw.write(f"{strong_component}\n")
         fw.write(f"Количество компонент сильной связности: {len(strong_components)}\n\n")
         print("[+] Записали 2 лабу в файл")
@@ -720,17 +731,18 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
         fsm.compute_delta()
         fsm.compute_mu()
         print("[+] Сделали 3 лабу")
-        for c in fsm.equivalence_classes.values():
-            fw.write(f"{c}\n")
+        for i, equivalence_class in enumerate(fsm.equivalence_classes.values()):
+            fw.write(f"k = {i+1}:\n")
+            fw.write(" |_| ".join(str(state) for state in equivalence_class))
+            fw.write("\n")
         fw.write(f"Степень различимости автомата, delta(A): {fsm.delta}\n")
-        fw.write(f"mu(A): {fsm.mu}\n\n")
+        fw.write(f"Приведенный вес автомата, mu(A): {fsm.mu}\n\n")
         print("[+] Записали 3 лабу в файл")
 
         # TASK 4
         # print("TASK 4")
         # fsm.compute_memory_function()
         fw.write("TASK 4\n")
-        # TODO
         fsm.compute_memory_function(fw)
         print("[+] Записали 4 лабу в файл")
 
@@ -747,7 +759,10 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
 
         # print(f"Линейная сложность: {len(min_polynomial_coefs)}")
         fw.write("TASK 5\n")
-        fw.write(f"Начальное состояние: {init_state}\n")
+        fw.write(f"Начальное состояние: ")
+        for el in init_state:
+            fw.write(f"{el}")
+        fw.write("\n")
         min_polynomial_coefs = fsm.compute_min_polynomial(init_state)
         print("[+] Сделали 5 лабу")
 
@@ -757,6 +772,8 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
         for i in range(1, len(min_polynomial_coefs)):
             if min_polynomial_coefs[i] == 1:
                 min_polynomial += f"x^{i} + "
+
+        min_polynomial = min_polynomial.removesuffix(" + ")
         fw.write(f"Минимальный многочлен: {min_polynomial}\n")
 
         fw.write(f"Линейная сложность: {len(min_polynomial_coefs)}\n\n")

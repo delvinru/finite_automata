@@ -533,24 +533,49 @@ class FSM:
         return seq_out
     
     def _get_memory_function_coefs_str(self, vector: list[int]) -> str:
+        import math
+
         vector_string = ""
         if vector[0] == 1:
            vector_string += "1 + "
 
+        length_of_vector = int(math.log(len(vector), 2))
+        print(f"{len(vector)=} {length_of_vector=} {math.log(len(vector), 2)=}")
+
+        # for i in range(1, len(vector)):
+        #     if vector[i] == 1:
+        #         bin_value = bin(i)[2:].zfill((2 * self.n) + 1)
+        #         for coef, bit in enumerate(bin_value):
+        #             if int(bit) == 1:
+        #                 coef_str = ""
+
+        #                 # compute coef_str
+        #                 if coef + 1 < self.n + 1:
+        #                     coef_str += "x_(i"
+        #                     coef_str += f"-{self.n - coef})"
+        #                 elif coef + 1 > self.n + 1:
+        #                     coef_str += "y_(i"
+        #                     coef_str += f"-{2 * self.n - coef + 1})"
+        #                 else:
+        #                     coef_str += "x_i"
+
+        #                 vector_string += coef_str
+        #         vector_string += " + "
+
         for i in range(1, len(vector)):
             if vector[i] == 1:
-                bin_value = bin(i)[2:].zfill((2 * self.n) + 1)
+                bin_value = bin(i)[2:].zfill(length_of_vector)
                 for coef, bit in enumerate(bin_value):
                     if int(bit) == 1:
                         coef_str = ""
 
                         # compute coef_str
-                        if coef + 1 < self.n + 1:
+                        if coef < length_of_vector // 2:
                             coef_str += "x_(i"
-                            coef_str += f"-{self.n - coef})"
-                        elif coef + 1 > self.n + 1:
+                            coef_str += f"-{(length_of_vector // 2) - coef})"
+                        elif coef > length_of_vector // 2:
                             coef_str += "y_(i"
-                            coef_str += f"-{2 * self.n - coef + 1})"
+                            coef_str += f"-{length_of_vector - coef})"
                         else:
                             coef_str += "x_i"
 
@@ -666,6 +691,9 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
     fsm = FSM(n, phi, psi)
     # pprint(fsm.table)
     # pprint(fsm.graph.graph)
+
+    return_code = 0
+
     with open("test.txt", "w") as fw:
         # Add n to file
         fw.write(f"n = {fsm.n}\n")
@@ -743,8 +771,14 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
         # print("TASK 4")
         # fsm.compute_memory_function()
         fw.write("\nTASK 4\n")
-        fsm.compute_memory_function(fw)
-        print("[+] Записали 4 лабу в файл")
+        try:
+            fsm.compute_memory_function(fw)
+            print("[+] Записали 4 лабу в файл")
+        except KeyboardInterrupt:
+            fw.write("Слишком большое потребление ресурсов, вычисление остановлено\n")
+            fw.flush()
+            return_code = 1
+            print("[!] got keyboard interrupt, skipping 4 number")
 
         # TASK 5
         # print("TASK 5")
@@ -778,6 +812,8 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
 
         fw.write(f"Линейная сложность: {len(min_polynomial_coefs)}\n\n")
         print("[+] Записали 5 лабу в файл")
+
+        exit(return_code)
     
 
 # helper functions for graph printing

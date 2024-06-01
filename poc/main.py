@@ -417,7 +417,7 @@ class FSM:
                     # for element in elements:
                         # for l in element.values():
                         #     fw.write(f"{l} |_| ")
-                    fw.write("\n")
+                    fw.write("\n\n")
                 fw.write("\n")
                 # fw.write(f"{q}\n")
             memory = len(q_s)
@@ -692,12 +692,12 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
         #     print(weak_component)
         # print(f"Количество компонент связности: {len(weak_components)}")
         # print()
-        fw.write("TASK 1\n")
+        fw.write("\nTASK 1\n")
         weak_components = fsm.get_connected_components()
         print("[+] Сделали 1 лабу")
         for i, weak_component in enumerate(weak_components):
             fw.write(f"Компонента связности {i+1}: ")
-            fw.write(f"{weak_component}\n")
+            fw.write(f"{weak_component}\n\n")
         fw.write(f"Количество компонент связности: {len(weak_components)}\n\n")
         print("[+] Записали 1 лабу в файл")
 
@@ -708,12 +708,12 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
         #     print(strong_component)
         # print(f"Количество компонент сильной связности: {len(strong_components)}")
         # print()
-        fw.write("TASK 2\n")
+        fw.write("\nTASK 2\n")
         strong_components = fsm.get_strong_connected_components()
         print("[+] Сделали 2 лабу")
         for i, strong_component in enumerate(strong_components):
             fw.write(f"Компонента сильной связности {i+1}: ")
-            fw.write(f"{strong_component}\n")
+            fw.write(f"{strong_component}\n\n")
         fw.write(f"Количество компонент сильной связности: {len(strong_components)}\n\n")
         print("[+] Записали 2 лабу в файл")
 
@@ -734,7 +734,7 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
         for i, equivalence_class in enumerate(fsm.equivalence_classes.values()):
             fw.write(f"k = {i+1}:\n")
             fw.write(" |_| ".join(str(state) for state in equivalence_class))
-            fw.write("\n")
+            fw.write("\n\n")
         fw.write(f"Степень различимости автомата, delta(A): {fsm.delta}\n")
         fw.write(f"Приведенный вес автомата, mu(A): {fsm.mu}\n\n")
         print("[+] Записали 3 лабу в файл")
@@ -742,7 +742,7 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
         # TASK 4
         # print("TASK 4")
         # fsm.compute_memory_function()
-        fw.write("TASK 4\n")
+        fw.write("\nTASK 4\n")
         fsm.compute_memory_function(fw)
         print("[+] Записали 4 лабу в файл")
 
@@ -758,7 +758,7 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
         #         print(f"x^{i} + ", end='')
 
         # print(f"Линейная сложность: {len(min_polynomial_coefs)}")
-        fw.write("TASK 5\n")
+        fw.write("\nTASK 5\n")
         fw.write(f"Начальное состояние: ")
         for el in init_state:
             fw.write(f"{el}")

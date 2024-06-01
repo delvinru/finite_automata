@@ -459,21 +459,22 @@ class FSM {
                 vector_string += "1 + ";
             }
 
+            int length_of_vector = static_cast<int>(std::log2(vector.size()));
             for (int i = 1; i < vector.size(); ++i) {
                 if (vector[i] == 1) {
                     std::bitset<32> bin_value(i);
-                    std::string bin_str = bin_value.to_string().substr(32 - (2 * this->n + 1));
+                    std::string bin_str = bin_value.to_string().substr(32 - length_of_vector);
                     for (int coef = 0; coef < bin_str.size(); coef++) {
                         if (bin_str[coef] == '1') {
                             std::string coef_str = "";
 
                             // compute coef_str
-                            if (coef + 1 < this->n + 1) {
+                            if (coef < (int)(length_of_vector / 2)) {
                                 coef_str += "x_(i";
-                                coef_str += "-" + std::to_string(this->n - coef) + ")";
-                            } else if (coef + 1 > this->n + 1) {
+                                coef_str += "-" + std::to_string((int)(length_of_vector / 2) - coef) + ")";
+                            } else if (coef > (int)(length_of_vector / 2)) {
                                 coef_str += "y_(i";
-                                coef_str += "-" + std::to_string(2 * this->n - coef + 1) + ")";
+                                coef_str += "-" + std::to_string(length_of_vector - coef) + ")";
                             } else {
                                 coef_str += "x_i";
                             }

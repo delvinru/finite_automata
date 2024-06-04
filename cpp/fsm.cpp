@@ -418,10 +418,27 @@ class FSM {
                 }
             }
 
-            for (const auto& elements : large_table_dict) {
-                for (const auto& element : elements.second) {
-                    memory_value_vector.push_back(element);
+            const int n = 2 * memory + 1;
+            const int max_value = (1 << n); // 2^n
+
+            for (int i = 0; i < max_value; ++i) {
+                std::bitset<32> bits(i); // bitset размером 32 для гарантии
+                std::vector<int> permutation;
+
+                for (int j = n - 1; j >= 0; --j) {
+                    permutation.push_back(bits[j]);
                 }
+
+                std::vector<int> left_part;
+                for (int i = 0; i < memory; i++) {
+                    left_part.push_back(permutation[i]);
+                }
+                std::vector<int> right_part;
+                for (int i = memory + 1; i < permutation.size(); i++) {
+                    right_part.push_back(permutation[i]);
+                }
+                auto current_vector = std::make_tuple(left_part, right_part);
+                memory_value_vector.push_back(large_table_dict[current_vector][permutation[memory]]);
             }
 
             return memory_value_vector;

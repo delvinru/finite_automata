@@ -488,9 +488,9 @@ class FSM:
                     large_table_dict[current_vector][0] = self.table[main_state][1][0]
                     large_table_dict[current_vector][1] = self.table[main_state][1][1]
 
-        for elements in large_table_dict.values():
-            memory_value_vector.append(elements[0])
-            memory_value_vector.append(elements[1])
+        for comb in self._generate_binary_combinations(2 * memory + 1):
+            current_vector = tuple([tuple(comb[:memory]), tuple(comb[memory+1:])])
+            memory_value_vector.append(large_table_dict[current_vector][comb[memory]])
 
         return memory_value_vector
     
@@ -540,7 +540,6 @@ class FSM:
            vector_string += "1 + "
 
         length_of_vector = int(math.log(len(vector), 2))
-        print(f"{len(vector)=} {length_of_vector=} {math.log(len(vector), 2)=}")
 
         # for i in range(1, len(vector)):
         #     if vector[i] == 1:

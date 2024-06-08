@@ -3,9 +3,16 @@ package fsm
 import (
 	"fmt"
 	"log/slog"
+	"math"
 	"reflect"
+	"runtime"
 	"slices"
+	"strings"
 	"sync"
+
+	"github.com/delvinru/finite_automata/internal/filemanager"
+
+	"golang.org/x/exp/maps"
 )
 
 type Q map[State][]map[State][][]uint8
@@ -50,8 +57,6 @@ func (f *FSM) MemoryFunction() {
 		slog.Info("memory function, doing minimization")
 		fsm.minimization()
 	}
-
-	slog.Info("memory func", "mu", fsm.Mu)
 
 	// q_1 - special Q
 	q_1 := Q{}
@@ -148,6 +153,46 @@ func (f *FSM) MemoryFunction() {
 		q_s = append(q_s, nextQ)
 		slog.Info(fmt.Sprintf("compute q_%v", len(q_s)))
 	}
+
+	slog.Info("compute all q")
+
+	// Directly use filemanager because this function is HUGE MEMORY CONSUPTION
+	if len(q_s) > maxSteps {
+		// TODO: print that memory infinity
+		slog.Info("memory infinity")
+		return
+	}
+
+	for i, q := range q_s {
+		for state, elements := range q {
+			filemanager.Write(fmt.Sprintf("\nq_%v(%v):\n", i+1, state))
+
+			for j, element := range elements {
+				for _, value := range maps.Values(element) {
+					filemanager.Write(fmt.Sprintf("%v", value))
+				}
+				if j != len(elements)-1 {
+					filemanager.Write(" |_|")
+				}
+				filemanager.Write("\n")
+			}
+		}
+		filemanager.Write("\n")
+	}
+
+	filemanager.Write(fmt.Sprintf("Память автомата конечна: m(A)=%v\n", len(q_s)))
+
+	// force call garbage collector
+	runtime.GC()
+
+	slog.Info("compute memory value vector")
+	memoryValueVector := f.getMemoryValueVector(q_s[len(q_s)-1], len(q_s))
+
+	slog.Info("convert memory value vector to polynomial")
+	polynomial := f.convertToPylonomial(memoryValueVector)
+
+	slog.Info("get human readable polynomial")
+	filemanager.Write(fmt.Sprintf("Функция памяти автомата: %v\n", f.convertPolynomialToString(polynomial)))
 }
 
 func (f *FSM) isEqualEdgesInQ(q Q) bool {
@@ -177,76 +222,112 @@ func (f *FSM) isEqualEdgesInQ(q Q) bool {
 	return false
 }
 
-// func (f *FSM) minimization() {
-// 	// assume that equivalence classes already precomputed
+func (f *FSM) getMemoryValueVector(q Q, memory int) []uint8 {
+	memoryValueVector := []uint8{}
 
-// 	for _, set_states := range f.EquivalenceClasses[f.Delta] {
-// 		if len(set_states) > 1 {
-// 			equivalentState := set_states[0]
-// 			for i := 1; i < len(set_states); i++ {
-// 				for _, table_tuple := range f.table {
-// 					for j, state := range table_tuple.Phi {
-// 						if state == set_states[i] {
-// 							table_tuple.Phi[j] = equivalentState
-// 						}
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
+	compareTable := map[[2]State][]uint8{}
+	for firstCombination := range generateBinaryCombinations(memory) {
+		for secondCombination := range generateBinaryCombinations(memory) {
+			key := [2]State{
+				NewState(firstCombination),
+				NewState(secondCombination),
+			}
+			compareTable[key] = make([]uint8, 2)
+		}
+	}
 
-// 	f.GetEquivalenceClasses()
-// }
+	for state, elements := range q {
+		for _, element := range elements {
+			for _, vectors := range maps.Values(element) {
+				key := [2]State{
+					NewState(vectors[0]),
+					NewState(vectors[1]),
+				}
 
-// func (f *FSM) isEqualEdgesInQ(q map[State][]map[State][][]uint8) {
-// 	uniqueEdges := map[[]uint8]bool{}
-// 	for _, edges := range q {
-// 		for _, edge := range edges {
-// 			for _, pair := range edge {
-// 				checkPair := [2]uint8{pair[0], pair[1]}
-// 			}
-// 		}
-// 	}
-// }
+				compareTable[key][0] = f.table[state].Psi[0]
+				compareTable[key][1] = f.table[state].Psi[1]
+			}
+		}
+	}
 
-// func (f *FSM) MemoryFunction() error {
-// 	if len(f.EquivalenceClasses) == 0 {
-// 		slog.Debug("computing equivalence classess")
-// 		f.GetEquivalenceClasses()
-// 	}
+	// Генерируем специально последовательно от элементов на 1 больше, чтобы корректно собрать "большую" таблицу
+	for combination := range generateBinaryCombinations(2*memory + 1) {
+		// Игнорируем элемент посередине, т.к. он является входным значением
+		key := [2]State{
+			NewState(combination[:memory]),
+			NewState(combination[memory+1:]),
+		}
 
-// 	// create copy
-// 	fsmCopy := f
+		// Забираем это значение посередине
+		memoryValueVector = append(memoryValueVector, compareTable[key][combination[memory]])
+	}
 
-// 	if f.Mu != len(f.table) {
-// 		slog.Debug("automate not minimal, doing minimization")
-// 		fsmCopy.minimization()
-// 	}
+	return memoryValueVector
+}
 
-// 	// compute q_1
-// 	q_1 := map[State][]map[State][][]uint8{}
+func (f *FSM) convertToPylonomial(sequence []uint8) []uint8 {
+	var (
+		sequenceLeft  = make([]uint8, len(sequence)/2)
+		sequenceRight = make([]uint8, len(sequence)/2)
+		sequenceOut   = make([]uint8, len(sequence))
 
-// 	for keyState := range fsmCopy.table {
-// 		edgesList := map[[2]uint8]bool{}
-// 		for valueState, edges := range fsmCopy.table {
-// 			for i := range 2 {
-// 				tmpSet := [2]uint8{uint8(i), edges.Psi[i]}
-// 				if edges.Phi[i] == keyState && !edgesList[tmpSet] {
-// 					q_1[keyState] = append(q_1[keyState], map[State][][]uint8{valueState: {{uint8(i)}, {edges.Psi[i]}}})
-// 					edgesList[tmpSet] = true
-// 				}
-// 			}
-// 		}
-// 	}
+		temp1 []uint8
+		temp2 []uint8
+	)
 
-// 	q_s := []map[State][]map[State][][]uint8{q_1}
+	for i := 0; i < len(sequence)/2; i++ {
+		sequenceLeft[i] = sequence[i]
+		sequenceRight[i] = (sequence[i] + sequence[i+len(sequence)/2]) % 2
+	}
 
-// 	maxSteps := (fsmCopy.Mu * (fsmCopy.Mu - 1)) / 2
+	if len(sequence) == 2 {
+		sequenceOut[0] = sequenceLeft[0]
+		sequenceOut[1] = sequenceRight[0]
 
-// 	// if f.Mu != len(f.table) {
-// 	// 	fmt.Println("make minimization")
-// 	// 	f.minimization()
-// 	// }
+		return sequenceOut
+	}
 
-// 	return nil
-// }
+	temp1 = f.convertToPylonomial(sequenceLeft)
+	temp2 = f.convertToPylonomial(sequenceRight)
+
+	for i := 0; i < len(sequence)/2; i++ {
+		sequenceOut[i] = temp1[i]
+		sequenceOut[i+len(sequenceOut)/2] = temp2[i]
+	}
+
+	return sequenceOut
+}
+
+func (f *FSM) convertPolynomialToString(polynomial []uint8) string {
+	vectorString := ""
+	if polynomial[0] == 1 {
+		vectorString += "1 ⊕ "
+	}
+
+	lengthOfVector := int(math.Log2(float64(len(polynomial))))
+
+	for i := 1; i < len(polynomial); i++ {
+		if polynomial[i] == 1 {
+			binValue := fmt.Sprintf("%0*b", lengthOfVector, i)
+			for coef, bit := range binValue {
+				if bit == '1' {
+					coefStr := ""
+					if coef < lengthOfVector/2 {
+						coefStr += "x_(i"
+						coefStr += fmt.Sprintf("-%d)", (lengthOfVector/2)-coef)
+					} else if coef > lengthOfVector/2 {
+						coefStr += "y_(i"
+						coefStr += fmt.Sprintf("-%d)", lengthOfVector-coef)
+					} else {
+						coefStr += "x_i"
+					}
+					vectorString += coefStr
+				}
+			}
+			vectorString += " ⊕ "
+		}
+	}
+
+	vectorString = strings.TrimSuffix(vectorString, " ⊕ ")
+	return vectorString
+}

@@ -2,6 +2,7 @@ package fsm
 
 import (
 	"fmt"
+	"log/slog"
 	"math"
 	"slices"
 )
@@ -79,7 +80,7 @@ func (f *FSM) berlekampMassey(u []uint8) []uint8 {
 
 	// step 1 <= s <= (l - 1)
 	for i := 1; i < int(math.Pow(2, float64(f.n)))-1; i++ {
-		fmt.Printf("i: %v\n", i)
+		slog.Debug(fmt.Sprintf("i: %v", i))
 
 		// list of segments u_i, first of all add (u_i)^0
 		currentSegments := [][]uint8{
@@ -95,25 +96,23 @@ func (f *FSM) berlekampMassey(u []uint8) []uint8 {
 			currentZerosCount = []uint8{zerosCount[len(zerosCount)-1] - 1}
 		}
 
-		fmt.Printf("currentSegments: %v\n", currentSegments)
-		fmt.Printf("currentPolynomials: %v\n", currentPolynomials)
-		fmt.Printf("currentZerosCount: %v\n", currentZerosCount)
+		slog.Debug(fmt.Sprintf("currentSegments: %v", currentSegments))
+		slog.Debug(fmt.Sprintf("currentPolynomials: %v", currentPolynomials))
+		slog.Debug(fmt.Sprintf("currentZerosCount: %v", currentZerosCount))
 
 		// case 3
 		a := countOfLeadingZeros(currentSegments[len(currentSegments)-1])
-		fmt.Printf("countOfLeadingZeros: %v, length: %v\n", a, len(currentSegments[len(currentSegments)-1]))
-		fmt.Printf("currentZerosCount[-1]: %v, zerosCount: %v\n", currentZerosCount[len(currentZerosCount)-1], zerosCount)
+		slog.Debug(fmt.Sprintf("countOfLeadingZeros: %v, length: %v", a, len(currentSegments[len(currentSegments)-1])))
+		slog.Debug(fmt.Sprintf("currentZerosCount[-1]: %v, zerosCount: %v", currentZerosCount[len(currentZerosCount)-1], zerosCount))
 
 		for countOfLeadingZeros(currentSegments[len(currentSegments)-1]) != uint8(len(currentSegments[len(currentSegments)-1])) && slices.Contains(zerosCount, currentZerosCount[len(currentZerosCount)-1]) {
 			// compute "t" from algorithm
 			t := slices.Index(zerosCount, currentZerosCount[len(currentZerosCount)-1])
-			fmt.Printf("t: %v\n", t)
 			// compute r in GF(2)
 			if segments[t][zerosCount[t]] == 0 {
 				panic("alarm! 0 when computing u_t(k_t)^(-1)")
 			}
 			r := currentSegments[len(currentSegments)-1][zerosCount[t]] * segments[t][zerosCount[t]]
-			fmt.Printf("r: %v\n", r)
 
 			tmpSegment := make([]uint8, len(segments[t]))
 			for j := 0; j < len(tmpSegment); j++ {
@@ -128,12 +127,6 @@ func (f *FSM) berlekampMassey(u []uint8) []uint8 {
 			currentPolynomials = append(currentPolynomials, sumOfTwoPolynomials(currentPolynomials[len(currentPolynomials)-1], tmpPolynomial))
 
 			currentZerosCount = append(currentZerosCount, countOfLeadingZeros(currentSegments[len(currentSegments)-1]))
-
-			fmt.Printf("currentSegments: %v\n", currentSegments)
-			fmt.Printf("currentPolynomials: %v\n", currentPolynomials)
-			fmt.Printf("currentZerosCount: %v\n", currentZerosCount)
-
-			// panic("test")
 		}
 
 		// case 1
@@ -154,17 +147,19 @@ func (f *FSM) berlekampMassey(u []uint8) []uint8 {
 	// step l
 	// segments = append(segments, make([]uint8, 0))
 	polynomials = append(polynomials, append([]uint8{0}, polynomials[len(polynomials)-1]...))
-	fmt.Printf("minimal shit: %v\n", polynomials)
 
 	return polynomials[len(polynomials)-1]
 }
 
-func (f *FSM) ComputeMinimalPolynomial(initStateStr string) ([]uint8, error) {
+func (f *FSM) ComputeMinimalPolynomial(initStateStr string) error {
 	initState, err := getFunctionCoeffs(initStateStr)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	u := f.computeU(initState)
-	return f.berlekampMassey(u), nil
+	f.BerlekmapMassey.U = f.computeU(initState)
+	f.BerlekmapMassey.MinimalPolynomial = f.berlekampMassey(f.BerlekmapMassey.U)
+	f.BerlekmapMassey.LinearyComplexity = len(f.BerlekmapMassey.MinimalPolynomial)
+
+	return nil
 }

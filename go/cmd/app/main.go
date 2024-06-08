@@ -10,6 +10,7 @@ import (
 
 	"github.com/delvinru/finite_automata/internal/config"
 	"github.com/delvinru/finite_automata/internal/filemanager"
+	"github.com/delvinru/finite_automata/internal/fsm"
 	"github.com/lmittmann/tint"
 )
 
@@ -34,7 +35,7 @@ func getSpecificConfig(configs []map[string]config.Config) (config.Config, error
 func main() {
 	flag.Parse()
 
-	logLevel := slog.LevelWarn
+	logLevel := slog.LevelInfo
 	if *verbose {
 		logLevel = slog.LevelDebug
 	}
@@ -90,36 +91,76 @@ func main() {
 }
 
 func execute(config config.Config) {
-	fmt.Println(config)
-	// fsm, err := fsm.NewFSM(*n, *phi, *psi)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	os.Exit(1)
-	// }
+	// Write basic info about test
+	filemanager.Write(fmt.Sprintf("n: %v\n", config.N))
+	filemanager.Write(fmt.Sprintf("phi: %v\n", config.Phi))
+	filemanager.Write(fmt.Sprintf("psi: %v\n\n", config.Psi))
 
-	// fmt.Printf("ConnectedComponents: %v\n", len(fsm.ConnectedComponents))
-	// for i, value := range fsm.ConnectedComponents {
-	// 	fmt.Printf("Adj_comp # %v: %v\n", i, value)
-	// }
+	// init FSM
+	fsm, err := fsm.New(config.N, config.Phi, config.Psi)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-	// fmt.Println()
+	// TASK 1
+	filemanager.Write("Задание 1\n")
 
-	// fmt.Printf("StrongConnectedComponents: %v\n", len(fsm.StrongConnectedComponents))
-	// for i, value := range fsm.StrongConnectedComponents {
-	// 	fmt.Printf("Strong_adj_comp # %v: %v\n", i, value)
-	// }
-	// fmt.Println()
+	for i, value := range fsm.ConnectedComponents {
+		filemanager.Write(fmt.Sprintf("Компонента связаности %v: %v\n", i+1, value))
+	}
+	filemanager.Write(fmt.Sprintf("Количество компонент связности: %v\n\n", len(fsm.ConnectedComponents)))
 
-	// fsm.GetEquivalenceClasses()
-	// fmt.Println("Equivalence Classess:", fsm.EquivalenceClasses)
-	// fmt.Println("delta(A):", fsm.Delta)
-	// fmt.Println("mu(A):", fsm.Mu)
-	// fmt.Println()
+	// TASK 2
+	filemanager.Write("\nЗадание 2\n")
+	for i, value := range fsm.StrongConnectedComponents {
+		filemanager.Write(fmt.Sprintf("Компонента сильной связаности %v: %v\n", i+1, value))
+	}
+	filemanager.Write(fmt.Sprintf("Количество компонент сильной связности: %v\n\n", len(fsm.ConnectedComponents)))
 
-	// // TEST
-	// fsm.MemoryFunction()
+	// TASK 3
+	filemanager.Write("\nЗадание 3")
+	fsm.GetEquivalenceClasses()
 
-	// // minimalPolynomial, _ := fsm.ComputeMinimalPolynomial(*initState)
-	// // fmt.Println("Minimal Polynomial:", minimalPolynomial)
-	// // fmt.Println("Linear Complexity:", len(minimalPolynomial))
+	for i := range len(fsm.EquivalenceClasses) {
+		filemanager.Write(fmt.Sprintf("\nКласс %v-эквивалентности:\n", i+1))
+		for j, value := range fsm.EquivalenceClasses[i+1] {
+			filemanager.Write(fmt.Sprintf("%v", value))
+			if j != len(fsm.EquivalenceClasses[i+1])-1 {
+				filemanager.Write(" |_|\n")
+			} else {
+				filemanager.Write("\n")
+			}
+		}
+	}
+
+	filemanager.Write(fmt.Sprintf("Степень различимости автомата, delta(A)=%v\n", fsm.Delta))
+	filemanager.Write(fmt.Sprintf("Приведенный вес автомата, mu(A)=%v\n", fsm.Mu))
+
+	// TASK 4
+	filemanager.Write("\nЗадание 4\n")
+	fsm.MemoryFunction()
+
+	// TASK 5
+	filemanager.Write("\nЗадание 5\n")
+	filemanager.Write(fmt.Sprintf("Начальное состояние: %v\n", config.State))
+
+	fsm.ComputeMinimalPolynomial(config.State)
+
+	filemanager.Write("Минимальный многочлен: ")
+	for i, element := range fsm.BerlekmapMassey.MinimalPolynomial {
+		if i == 0 && element == 1 {
+			filemanager.Write("1 + ")
+			continue
+		}
+
+		if element == 1 {
+			filemanager.Write(fmt.Sprintf("x^(%v)", i))
+		}
+
+		if i != len(fsm.BerlekmapMassey.MinimalPolynomial)-1 && element == 1 {
+			filemanager.Write(" + ")
+		}
+	}
+	filemanager.Write(fmt.Sprintf("\nЛинейная сложность: %v\n", fsm.BerlekmapMassey.LinearyComplexity))
 }

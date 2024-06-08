@@ -28,9 +28,15 @@ type FSM struct {
 	EquivalenceClasses map[int][][]State
 	Delta              int
 	Mu                 int
+
+	BerlekmapMassey struct {
+		U                 []uint8
+		MinimalPolynomial []uint8
+		LinearyComplexity int
+	}
 }
 
-func NewFSM(n int, phi string, psi string) (FSM, error) {
+func New(n int, phi string, psi string) (FSM, error) {
 	phis, err := getFunctionCoeffs(phi)
 	if err != nil {
 		return FSM{}, err

@@ -17,6 +17,7 @@ require (
 	golang.org/x/tools v0.18.1-0.20240412183611-d92ae0781217 // indirect
 	golang.org/x/tools/gopls v0.15.3 // indirect
 	golang.org/x/vuln v1.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.4.6 // indirect
 	mvdan.cc/gofumpt v0.6.0 // indirect
 	mvdan.cc/xurls/v2 v2.5.0 // indirect

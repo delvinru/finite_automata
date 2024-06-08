@@ -36,7 +36,6 @@ if [ $PROGRAM_TYPE == "go" ]; then
     run 17
     run 18
     run 19
-fi
 else
     SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
     PYTHON_PROGRAM="$SCRIPT_DIR/../poc/main.py"

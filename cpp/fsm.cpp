@@ -7,7 +7,6 @@
 #include <iostream>
 #include <string>
 #include <cmath>
-#include <omp.h>
 
 class FSM {
     private:

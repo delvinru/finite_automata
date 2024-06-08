@@ -105,7 +105,6 @@ func (f *FSM) GetEquivalenceClasses() map[int][][]State {
 	equivalenceClasses := map[int][][]State{
 		1: f.getFirstClasses(),
 	}
-	slog.Debug("class", "k", 1, "class", equivalenceClasses[1])
 
 	for k := 1; ; k++ {
 		newClass := f.computeKClasses(equivalenceClasses[k])

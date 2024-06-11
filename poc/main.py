@@ -501,7 +501,6 @@ class FSM:
 
     # another zhegalin polynomial implementation
     def _get_memory_function_coefs(self, seq: list[int]) -> list[int]:
-        # Ломается на больших значениях, гооооооол!
         # vector_len = len(vector)
         # pascal_triangle: list[list[int]] = [[0 for j in range(vector_len)] for i in range(vector_len)]
         # for i in range(1, vector_len + 1):
@@ -595,7 +594,7 @@ class FSM:
         return u
     
     # Тут считаем минимальный многочлен
-    def _berlekamp_massey(self, u: list[int]) -> list[int]:
+    def _berlekamp_massey(self, u: list[int], fw) -> list[int]:
         # Список отрезков таблицы
         segments: list[list[int]] = []
         # Список многочленов таблицы
@@ -615,9 +614,30 @@ class FSM:
         # шаг 0 из алгоритма
         zeros_count.append(count_of_leading_zeros(u))
         polynomials.append([1])
+        segments.append(u)
+        
+        len_u = int(len(deepcopy(u)) * 3.1)
+    
+        fw.write(f"s".center(5))
+        fw.write(" | ")
+        fw.write(f"Отрезок".center(len_u))
+        fw.write(" | ")
+        fw.write(f"Многочлен".center(len_u // 3))
+        fw.write(" | ")
+        fw.write(f"Нули".center(3))
+        fw.write("\n")
+        
+        fw.write(f"s=0".center(5))
+        fw.write(" | ")
+        fw.write(f"u={segments[-1]}".center(len_u))
+        fw.write(" | ")
+        fw.write(f"f={self.min_polynomial_to_str(polynomials[-1])}".center(len_u // 3))
+        fw.write(" | ")
+        fw.write(f"k={zeros_count[-1]}".center(len(str(zeros_count[-1])) + 2))
+        fw.write("\n")
+        
         if zeros_count[-1] == len(u):
             return polynomials[0]
-        segments.append(u)
 
         # Шаги 1 <= s <= (l - 1)
         for i in range(1, 2 ** self.n - 1):
@@ -668,22 +688,56 @@ class FSM:
                 zeros_count.append(current_zeros_count[-1])
                 polynomials.append(current_polynomials[-1])
                 segments.append(current_segments[-1])
+                fw.write(f"s={i}".center(5))
+                fw.write(" | ")
+                fw.write(f"u={segments[-1]}".center(len_u))
+                fw.write(" | ")
+                fw.write(f"f={self.min_polynomial_to_str(polynomials[-1])}".center(len_u // 3))
+                fw.write(" | ")
+                fw.write(f"k={zeros_count[-1]}".center(len(str(zeros_count[-1])) + 2))
+                fw.write("\n")
                 return polynomials[-1]
             
             # Случай 2
             segments.append(current_segments[-1])
             polynomials.append(current_polynomials[-1])
             zeros_count.append(current_zeros_count[-1])
+            fw.write(f"s={i}".center(5))
+            fw.write(" | ")
+            fw.write(f"u={segments[-1]}".center(len_u))
+            fw.write(" | ")
+            fw.write(f"f={self.min_polynomial_to_str(polynomials[-1])}".center(len_u // 3))
+            fw.write(" | ")
+            fw.write(f"k={zeros_count[-1]}".center(len(str(zeros_count[-1])) + 2))
+            fw.write("\n")
 
         # Шаг l
         segments.append([])
         polynomials.append([0] + polynomials[-1])
+        fw.write(f"s={2 ** self.n - 1}".center(5))
+        fw.write(" | ")
+        fw.write(f"u={segments[-1]}".center(len_u))
+        fw.write(" | ")
+        fw.write(f"f={self.min_polynomial_to_str(polynomials[-1])}".center(len_u // 3))
+        fw.write(" | ")
+        fw.write(f"k={zeros_count[-1]}".center(len(str(zeros_count[-1])) + 2))
+        fw.write("\n")
         return polynomials[-1]
 
     # Вызываем для вычсиления минимального многочлена выходного отрезка
-    def compute_min_polynomial(self, init_state: list[int]) -> None:
+    def compute_min_polynomial(self, init_state: list[int], fw) -> None:
         u = self._compute_u(init_state)
-        min_polynomial = self._berlekamp_massey(u)
+        min_polynomial = self._berlekamp_massey(u, fw)
+        return min_polynomial
+    
+    def min_polynomial_to_str(self, min_polynomial_coefs: list[int]) -> str:
+        min_polynomial = ""
+        if min_polynomial_coefs[0] == 1:
+            min_polynomial += "1 + "
+        for i in range(1, len(min_polynomial_coefs)):
+            if min_polynomial_coefs[i] == 1:
+                min_polynomial += f"x^{i} + "
+        min_polynomial = min_polynomial.removesuffix(" + ")
         return min_polynomial
 
 def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
@@ -792,11 +846,20 @@ def main(n: int, phi: list[int], psi: list[int], init_state: list[int]) -> None:
 
         # print(f"Линейная сложность: {len(min_polynomial_coefs)}")
         fw.write("\nTASK 5\n")
-        fw.write(f"Начальное состояние: ")
+        # for state in fsm._generate_binary_combinations(n):
+        #     min_polynomial_coefs = fsm.compute_min_polynomial(state, fw)
+        #     fw.write(f"Начальное состояние: {state}\n")
+            
+        #     min_polynomial = fsm.min_polynomial_to_str(min_polynomial_coefs)
+        #     fw.write(f"{min_polynomial=}")
+        #     fw.write("\n")
+        #     fw.write("".join(["=" for i in range(1024)]))
+        #     fw.write("\n")
+            
         for el in init_state:
             fw.write(f"{el}")
         fw.write("\n")
-        min_polynomial_coefs = fsm.compute_min_polynomial(init_state)
+        min_polynomial_coefs = fsm.compute_min_polynomial(init_state, fw)
         print("[+] Сделали 5 лабу")
 
         min_polynomial = ""
